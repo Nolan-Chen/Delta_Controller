@@ -7,6 +7,8 @@
 class CExhibiton : public CDialogEx
 {
 	DECLARE_DYNAMIC(CExhibiton)
+private:
+	static UINT __cdecl _threadRobotAction(LPVOID pParam);
 
 public:
 	CExhibiton(CWnd* pParent = NULL);   // standard constructor
@@ -37,7 +39,7 @@ public:
 	double m_Point4_Z;
 	ULONGLONG m_LoopTimes;
 	//CDELTA_ControllerDlg m_deltacontrollerDlg;
-
+	void threadExhibitionRobotAction();
 
 	GtsMotion gtsmotion;
 	ULONGLONG m_looptimes_al;

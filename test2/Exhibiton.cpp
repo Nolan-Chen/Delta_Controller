@@ -81,16 +81,30 @@ void CExhibiton::OnBnClickedCancel()
 void CExhibiton::OnBnClickedOk()
 {
 	// TODO: Add your control notification handler code here
-	//CDialogEx::OnOK();
-	//DestroyWindow();
+	UpdateData(TRUE);         //刷新对话框，获取坐标点值
+	AfxBeginThread(_threadRobotAction, (void*)this);
+}
+
+UINT __cdecl CExhibiton::_threadRobotAction(LPVOID pParam)
+{
+	CExhibiton *exhibition = (CExhibiton*)pParam;
+
+	exhibition->threadExhibitionRobotAction();
+	//UpdateData(FALSE);
+	return 0;
+}
+
+void CExhibiton::threadExhibitionRobotAction()
+{
 	short flag=1;
 	double Point0[3],Point1[3],Point2[3],Point3[3],Point4[3]; //当前点和四个目标点的坐标
 	double P0[3];     //记录初始点
 	extern double ovalue[];    //控制器零位相对于逆解零位的坐标
 	extern int m_Int;
 
-	UpdateData(TRUE);         //刷新对话框，获取坐标点值
+	//UpdateData(TRUE);         //刷新对话框，获取坐标点值
 
+	//gtsmotion.WaitMotor();    //等待电机到位
 	gtsmotion.GetCurPos(Point0);
 
 	P0[0] = ovalue[0];
@@ -128,20 +142,23 @@ void CExhibiton::OnBnClickedOk()
 		if(flag == 0)
 			flag = gtsmotion.Pvt_DynamicPT(Point0,Point2,1,m_Int);   //如果前一段函数运行出错，则直线运行到第二点
 		else
-		    flag = gtsmotion.Pvt_DynamicPT(Point0,Point2,1,m_Int);   //如果前一线段运行没错，则椭圆线到达第二点
+			flag = gtsmotion.Pvt_DynamicPT(Point0,Point2,1,m_Int);   //如果前一线段运行没错，则椭圆线到达第二点
 
+		//gtsmotion.WaitMotor();    //等待电机到位
 		gtsmotion.GetCurPos(Point0);
 		if(flag == 0)
 			flag = gtsmotion.Pvt_DynamicPT(Point0,Point3,1,m_Int);
 		else
 			flag = gtsmotion.Pvt_DynamicPT(Point0,Point3,1,m_Int);
 
+		//gtsmotion.WaitMotor();    //等待电机到位
 		gtsmotion.GetCurPos(Point0);
 		if(flag == 0)
 			flag = gtsmotion.Pvt_DynamicPT(Point0,Point4,1,m_Int);   //如果前一段函数运行出错，则直线运行到第四点
 		else
 			flag = gtsmotion.Pvt_DynamicPT(Point0,Point4,1,m_Int);   //如果前一线段运行没错，则椭圆线到达第二点
 
+		//gtsmotion.WaitMotor();    //等待电机到位
 		gtsmotion.GetCurPos(Point0);
 		if(flag == 0)
 			flag = gtsmotion.Pvt_DynamicPT(Point0,Point1,1,m_Int);   //如果前一段函数运行出错，则直线运行到第一点
@@ -154,13 +171,11 @@ void CExhibiton::OnBnClickedOk()
 	double t2=GetTickCount();//程序段结束后取得系统运行时间(ms)
 	m_RunTime_Loop = (double)(t2-t1)/(2*m_LoopTimes);
 	m_looptimes_al = 60*1000/m_RunTime_Loop;
-	UpdateData(FALSE);
+	//UpdateData(FALSE);
 
 	gtsmotion.GetCurPos(Point0);//回去初始点
 	flag = gtsmotion.Pvt_DynamicPT(Point0,P0,1,m_Int);
 }
-
-
 
 void CExhibiton::OnDestroy()
 {

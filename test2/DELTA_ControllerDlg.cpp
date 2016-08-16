@@ -75,9 +75,9 @@ CDELTA_ControllerDlg::CDELTA_ControllerDlg(CWnd* pParent /*=NULL*/)
 	//初始化输入框数据
 	m_LoopTimes = 1;
 	m_Rtate = 0.0;
-	m_Pos_X = -100.0;
-	m_Pos_Y = -100.0;
-	m_Pos_Z = 400.0;
+	m_Pos_X = 0.0;
+	m_Pos_Y = 0.0;
+	m_Pos_Z = 326.19012184371931;
 	m_Zero_R = 0.0;
 	m_Zero_X = 0.0;
 	m_Zero_Y = 0.0;
@@ -145,6 +145,7 @@ BEGIN_MESSAGE_MAP(CDELTA_ControllerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON4, &CDELTA_ControllerDlg::OnBnClickedButton4)
 	ON_COMMAND(ID_Exhibition, &CDELTA_ControllerDlg::OnExhibition)
 	ON_COMMAND(ID_Conveyor, &CDELTA_ControllerDlg::OnConveyor)
+	ON_EN_CHANGE(IDC_EtEDITPOSITION_X, &CDELTA_ControllerDlg::OnEnChangeEteditpositionX)
 END_MESSAGE_MAP()
 
 
@@ -280,7 +281,6 @@ HCURSOR CDELTA_ControllerDlg::OnQueryDragIcon()
 }
 
 
-
 void CDELTA_ControllerDlg::OnBnClickedOk()
 {
 	// TODO: Add your control notification handler code here
@@ -381,7 +381,6 @@ void CDELTA_ControllerDlg::OnBnClickedButton2()
 	UpdateData(TRUE);         //刷新对话框，获取目标位置值
 	gtsmotion.GetCurPos(tranp0);  //得到当前坐标值
 	velrate = m_sliderVel.GetPos();
-
 
 	//获取目标值
 	P1[0] = m_Pos_X;
@@ -533,4 +532,15 @@ void CDELTA_ControllerDlg::OnConveyor()
 	pCT = new CConveyor();   //给指针分配内存
 	pCT->Create(IDD_Conveyor1); //创建一个非模态对话框
 	pCT->ShowWindow(SW_SHOWNORMAL);  //显示非模态对话框
+}
+
+
+void CDELTA_ControllerDlg::OnEnChangeEteditpositionX()
+{
+	// TODO:  如果该控件是 RICHEDIT 控件，它将不
+	// 发送此通知，除非重写 CDialogEx::OnInitDialog()
+	// 函数并调用 CRichEditCtrl().SetEventMask()，
+	// 同时将 ENM_CHANGE 标志“或”运算到掩码中。
+
+	// TODO:  在此添加控件通知处理程序代码
 }

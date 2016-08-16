@@ -35,6 +35,9 @@ private:
 	MotionPara motionpara[100];
 	int MotionTime;
 	Kine kine;
+	long mask;
+	bool waitMotorFlag;
+	static UINT __cdecl _thread_Robot_Action(LPVOID pParam);
 
 public:
 	bool Effector(bool Switch);
@@ -48,7 +51,7 @@ public:
 	void SetupJointLimit(int* JLimitP, int* JLimitN);
 	void GetCPosPrf(double* CPosPrf);
 	void GetJointPrfPos(double* JPrfPos);
-	void GetCurPos(double curpos[]);
+	bool GetCurPos(double curpos[]);
 	bool GetConveyorPos(OUT double* pos);//¶ÁÈ¡´«ËÍ´ø¸¨Öú±àÂëÆ÷¶ÁÊý
 	bool SingleJointTrapVel(short AXIS, double Jtag, double Vel);
 	bool SmoothStop();
@@ -75,6 +78,7 @@ public:
 	void WaitMotor();
 	bool ConCalibrate();
 	bool VisCalibrate();
+	void threadFuctionRobotAction();
 	GtsMotion();
 	~GtsMotion();
 };

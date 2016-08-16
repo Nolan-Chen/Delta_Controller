@@ -76,7 +76,15 @@ int Trajectory::StraightLine(IN double POS_0[],IN double POS_1[],IN short vel)
 
 	T_all = Time_Line(POS_0,POS_1,vel);//总时间
 	double T_test = T_all*2;
-	double TIMES_test = 60*1000/(int)T_test;
+	double TIMES_test;
+	if (T_test<1)
+	{
+		TIMES_test = 0;
+	}
+	else
+	{
+		TIMES_test = 60*1000/(int)T_test;
+	}
 	dis_all = Dis_Line(POS_0,POS_1);//直线长度
 	n = (int)(dis_all+0.5);//预设点数
 	T_gap = (long)(T_all/n+1);//修正时间间隔

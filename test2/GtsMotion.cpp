@@ -73,6 +73,7 @@ bool GtsMotion::MotionInit()
 	sRtn += GT_SetSoftLimit(AXIS_Z,150000,-50000);
 	if (sRtn == 0)
 	{
+		waitMotorFlag = true;
 		return TRUE;
 	}
 	else
@@ -99,13 +100,15 @@ bool GtsMotion::SetZero()
 void GtsMotion::WaitMotor()
 {
 	//等待电机运动到位，进入误差带
+	//waitMotorFlag = false;
 	do 
 	{
 		sRtn = GT_GetSts(AXIS_X,&sts,3);
 	} while (0x800!=(sts & 0x800));
+	//waitMotorFlag = true;
 }
 
-void GtsMotion::GetCurPos(double* curpos)
+bool GtsMotion::GetCurPos(double* curpos)
 {
 	double pVal[AXIS_Z];
 	double curAng[3];
@@ -114,6 +117,10 @@ void GtsMotion::GetCurPos(double* curpos)
 	int flag;
 
 	WaitMotor();//等待电机运动到位，进入误差带
+	/*if (waitMotorFlag == false)
+	{
+		return false;
+	}*/
 	sRtn = GT_GetEncPos(AXIS_X,pVal,AXIS_Z);//获取AXIS轴的编码器位置
 
 	//获取关节转角：已转过角度加上零位时候的角度
@@ -126,10 +133,10 @@ void GtsMotion::GetCurPos(double* curpos)
 	curpos[0] = curcord[0];//传递坐标值
 	curpos[1] = curcord[1];
 	curpos[2] = curcord[2];
+	return true;
 }
 bool GtsMotion::GetConveyorPos(OUT double* pos)
 {
-
 	return true;
 }
 
@@ -395,7 +402,6 @@ void GtsMotion::Ena_Stop(char index)
 short GtsMotion::Pvt_DynamicPT(IN double Point_0[3],IN double Point_1[3],IN short linetype,short velrate)
 {
 	short space;
-	long mask=0;
 	int flag;        //轨迹规划函数返回值
 	long time[1024]={0};
 	short int vel = 0;
@@ -436,6 +442,9 @@ short GtsMotion::Pvt_DynamicPT(IN double Point_0[3],IN double Point_1[3],IN shor
 		testzeroang[1][i] = wayPoint2[i];
 		testzeroang[2][i] = wayPoint3[i];
 	}
+	testzeroang[0][0] = wayPoint1[0];
+	testzeroang[1][0] = wayPoint2[0];
+	testzeroang[2][0] = wayPoint3[0];
 
 	//将AXIS轴设置为PT动态模式
 	sRtn = GT_PrfPt(AXIS_X,PT_MODE_STATIC);
@@ -464,11 +473,31 @@ short GtsMotion::Pvt_DynamicPT(IN double Point_0[3],IN double Point_1[3],IN shor
 		else break;
 	}
 
-	//启动运动控制卡
+	//启动电机
+	//AfxBeginThread(_thread_Robot_Action, (void*)this);
+	mask = 0;
 	mask += 1<<(AXIS_X-1);
 	mask += 1<<(AXIS_Y-1);
 	mask += 1<<(AXIS_Z-1);
 	sRtn = GT_PtStart(mask);
-
+	//WaitMotor();//等待电机运动到位，进入误差带
 	return 1;
+}
+
+UINT __cdecl GtsMotion::_thread_Robot_Action(LPVOID pParam)
+{
+	GtsMotion *gts = (GtsMotion*)pParam;
+
+	gts->threadFuctionRobotAction();
+	return 0;
+}
+
+void GtsMotion::threadFuctionRobotAction()
+{
+	mask = 0;
+	mask += 1<<(AXIS_X-1);
+	mask += 1<<(AXIS_Y-1);
+	mask += 1<<(AXIS_Z-1);
+	sRtn = GT_PtStart(mask);
+	WaitMotor();//等待电机运动到位，进入误差带
 }

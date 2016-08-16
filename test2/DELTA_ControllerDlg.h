@@ -86,4 +86,5 @@ private:
 public:
 	afx_msg void OnExhibition();
 	afx_msg void OnConveyor();
+	afx_msg void OnEnChangeEteditpositionX();
 };
