@@ -123,6 +123,7 @@
     <ClInclude Include="GtsMotion.h" />
     <ClInclude Include="Kine.h" />
     <ClInclude Include="Monitor.h" />
+    <ClInclude Include="mscomm.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Robot.h" />
     <ClInclude Include="stdafx.h" />
@@ -131,6 +132,7 @@
     <ClInclude Include="DELTA_Controller.h" />
     <ClInclude Include="DELTA_ControllerDlg.h" />
     <ClInclude Include="Trajectory.h" />
+    <ClInclude Include="XYPlatform.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Clibration.cpp" />
@@ -139,6 +141,7 @@
     <ClCompile Include="GtsMotion.cpp" />
     <ClCompile Include="Kine.cpp" />
     <ClCompile Include="Monitor.cpp" />
+    <ClCompile Include="mscomm.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -147,6 +150,7 @@
     <ClCompile Include="DELTA_Controller.cpp" />
     <ClCompile Include="DELTA_ControllerDlg.cpp" />
     <ClCompile Include="Trajectory.cpp" />
+    <ClCompile Include="XYPlatform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="test2.rc" />
@@ -156,7 +160,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties RESOURCE_FILE="test2.rc" />
+      <UserProperties _x007B_648A5600-2C6E-101B-82B6-000000000014_x007D_="CMscomm" RESOURCE_FILE="test2.rc" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

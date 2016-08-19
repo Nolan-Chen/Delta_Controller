@@ -8,6 +8,7 @@
 #include "GtsMotion.h"
 #include "Exhibiton.h"
 #include "Conveyor.h"
+#include "XYPlatform.h"
 
 // Ctest2Dlg dialog
 class CDELTA_ControllerDlg : public CDialogEx
@@ -83,8 +84,10 @@ public:
 private:
 	CExhibiton* pES;
 	CConveyor* pCT;
+	CXYPlatform* pXYPlatform;
 public:
 	afx_msg void OnExhibition();
 	afx_msg void OnConveyor();
 	afx_msg void OnEnChangeEteditpositionX();
+	afx_msg void OnXyplateformMonitor();
 };

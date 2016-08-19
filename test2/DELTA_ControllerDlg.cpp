@@ -68,10 +68,7 @@ CDELTA_ControllerDlg::CDELTA_ControllerDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CDELTA_ControllerDlg::IDD, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	//  m_Pos_X = 0.0f;
-	//  m_Pos_Y = 0.0f;
-	//  m_Pos_Z = 0.0f;
-	//  m_Rotate = 0.0f;
+
 	//初始化输入框数据
 	m_LoopTimes = 1;
 	m_Rtate = 0.0;
@@ -82,6 +79,11 @@ CDELTA_ControllerDlg::CDELTA_ControllerDlg(CWnd* pParent /*=NULL*/)
 	m_Zero_X = 0.0;
 	m_Zero_Y = 0.0;
 	m_Zero_Z = 326.19012184371931;
+
+	//指针初始化
+	pXYPlatform = new CXYPlatform();
+	pES = NULL;
+	pCT = NULL;
 }
 
 CDELTA_ControllerDlg::~CDELTA_ControllerDlg()
@@ -90,8 +92,8 @@ CDELTA_ControllerDlg::~CDELTA_ControllerDlg()
 		delete pES;
 	if(pCT) 
 		delete pCT;
-	/*pES = NULL;
-	delete pES;*/
+	if (pXYPlatform)
+		delete pXYPlatform;
 }
 
 void CDELTA_ControllerDlg::DoDataExchange(CDataExchange* pDX)
@@ -146,6 +148,7 @@ BEGIN_MESSAGE_MAP(CDELTA_ControllerDlg, CDialogEx)
 	ON_COMMAND(ID_Exhibition, &CDELTA_ControllerDlg::OnExhibition)
 	ON_COMMAND(ID_Conveyor, &CDELTA_ControllerDlg::OnConveyor)
 	ON_EN_CHANGE(IDC_EtEDITPOSITION_X, &CDELTA_ControllerDlg::OnEnChangeEteditpositionX)
+	ON_COMMAND(ID_XYPLATEFORM_MONITOR, &CDELTA_ControllerDlg::OnXyplateformMonitor)
 END_MESSAGE_MAP()
 
 
@@ -233,8 +236,9 @@ BOOL CDELTA_ControllerDlg::OnInitDialog()
 		/*strtest.Format(_T("%d"),flag);
 		index = m_pResultList->AddString(strtest);
 		m_pResultList->SetCurSel(index);*/
-
 	}
+
+	pXYPlatform->Create(IDD_XYDELTADLG);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -543,4 +547,11 @@ void CDELTA_ControllerDlg::OnEnChangeEteditpositionX()
 	// 同时将 ENM_CHANGE 标志“或”运算到掩码中。
 
 	// TODO:  在此添加控件通知处理程序代码
+}
+
+
+void CDELTA_ControllerDlg::OnXyplateformMonitor()
+{
+	// TODO:  在此添加命令处理程序代码
+	pXYPlatform->ShowWindow(SW_SHOWNORMAL);
 }
