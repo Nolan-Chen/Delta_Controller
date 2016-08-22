@@ -28,6 +28,7 @@ void CXYPlatform::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_MSCOMM, m_mscomm);
 	DDX_Text(pDX, IDC_XY_STATE, m_XyState);
 	DDX_Control(pDX, IDC_SERIAL_PORT, m_SerialPort);
+	DDX_Control(pDX, IDC_XY_STATE, m_StateInform);
 }
 
 
@@ -40,6 +41,7 @@ BEGIN_MESSAGE_MAP(CXYPlatform, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_YRZ, &CXYPlatform::OnClickedBtnYrz)
 	ON_BN_CLICKED(IDC_BTN_YLZ, &CXYPlatform::OnClickedBtnYlz)
 	ON_WM_TIMER()
+	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 
@@ -65,12 +67,13 @@ void CXYPlatform::OnClickedBtnOpen()
 		m_mscomm.put_InBufferCount(0);//设置和返回接收缓冲区的字节数，设为0时清空接收缓冲区
 		m_mscomm.put_OutBufferCount(0);//设置和返回发送缓冲区的字节数，设为0时清空发送缓冲区
 		m_mscomm.put_PortOpen(TRUE);//打开串口
-		SetTimer(1, 300, NULL);
 		if (m_mscomm.get_PortOpen())
 		{
+			SetTimer(1, 300, NULL);
 			str = _T("关闭串口");
 			UpdateData(true);
 			h_BtnOpen->SetWindowTextW(str);//改变按钮名称为“关闭串口”
+			StateShow(_T(">>>串口打开成功！"));
 		}
 	}
 	else
@@ -80,6 +83,7 @@ void CXYPlatform::OnClickedBtnOpen()
 		str = _T("打开串口");
 		UpdateData(true);
 		h_BtnOpen->SetWindowTextW(str);
+		StateShow(_T(">>>串口已关闭！"));
 	}
 }
 
@@ -105,18 +109,10 @@ void CXYPlatform::OnClickedBtnLoop()
 	m_mscomm.put_Output(COleVariant(sendData));//发送
 	Sleep(100);
 
-	VARIANT variantInp;
-	COleSafeArray safeArrayInp;
-	LONG len, k;
 	BYTE rxData[512];//设置BYTE数组
 	CString strtemp;
-	variantInp = m_mscomm.get_Input();//读缓冲区
-	safeArrayInp = variantInp; //VARIANT型变量转换为ColeSafeArray型变量
-	len = safeArrayInp.GetOneDimSize();//得到有效数据长度
-	for (k = 0; k < len; k++)
-	{
-		safeArrayInp.GetElement(&k, rxData + k);//转换为BYTE型数组
-	}
+	long k, len;
+	getReturn(rxData, &len);
 	for (k = 0; k < len; k++)//将数组转换为CString型变量
 	{
 		BYTE bt = *(char*)(rxData);//字符型
@@ -136,6 +132,8 @@ void CXYPlatform::OnClickedBtnXrz()
 	// TODO:  在此添加控件通知处理程序代码
 	int address = 256, byteNum = 2, data = 1;
 	sendCommand(WRITE, address, byteNum, data);
+	//SetTimer(1, 300, NULL);
+	moveYRf();
 }
 
 
@@ -144,6 +142,7 @@ void CXYPlatform::OnClickedBtnXlz()
 	// TODO:  在此添加控件通知处理程序代码
 	int address = 256, byteNum = 2, data = 2;
 	sendCommand(WRITE, address, byteNum, data);
+	moveYLf();
 }
 
 
@@ -177,6 +176,9 @@ BOOL CXYPlatform::OnInitDialog()
 	}
 	m_SerialPort.SetCurSel(2);
 
+	//m_XyState.
+	m_StateInform.SetReadOnly(TRUE);
+	m_StateInform.SetWindowTextW(_T(">>>请检查XY平台是否回零！"));
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// 异常:  OCX 属性页应返回 FALSE
 }
@@ -186,39 +188,130 @@ void CXYPlatform::OnTimer(UINT_PTR nIDEvent)//周期性检测输入端口状态
 {
 	// TODO:  在此添加消息处理程序代码和/或调用默认值
 	UpdateData(true);
-	CByteArray send_data;
-	BYTE commstr[11];
-	commstr[0] = 0x02;
-	commstr[1] = 0x30;
-	int m_addressH = 0x80;//起始地址十六进制表示
-	getAddress(&commstr[2], m_addressH);//将起始地址转换为ASCII码，并保存
-	getNum(&commstr[6], 32);//第二个参数为字节数，转换为ASCII码，并保存
-	commstr[8] = 0x03;
-	getSumChk(&commstr[9], &commstr[1], 8);
-	for (int i = 0; i < 11; i++)
-	{
-		send_data.Add(commstr[i]);
-	}
-	m_mscomm.put_Output(COleVariant(send_data));
-	Sleep(200);
-
-	VARIANT variant_inp;
-	COleSafeArray safearray_inp;
+	static bool flag[6] = { 0 };
+	int m_addressH, byteNum;
 	LONG len, k;
 	BYTE rxdata[512];//设置BYTE数组
 	CString strtemp, str;
-	variant_inp = m_mscomm.get_Input();//读取缓冲区
-	safearray_inp = variant_inp;//VARIANT型变量转换为COleSafeArray型变量
-	len = safearray_inp.GetOneDimSize();//得到有效数据长度
-	for (k = 0; k < len; k++)
+	for (int i = 0; i<3; i++)
 	{
-		safearray_inp.GetElement(&k, rxdata + k);
+		switch (i)
+		{
+		case 0:
+			m_addressH = 0x80;//输入端口X0~X7起始地址十六进制表示
+			byteNum = 1;
+			break;
+		case 1:
+			m_addressH = 0x100;//中间继电器M0~M7起始地址十六进制表示
+			byteNum = 1;
+			break;
+		case 2:
+			m_addressH = 0x102;//中间继电器M16~M23起始地址十六进制表示
+			byteNum = 1;
+			break;
+		}
+
+		sendCommand(READ, m_addressH, byteNum, NULL);
+		getReturn(rxdata, &len);//获取接收缓冲区的返回值
+		for (k = 2; k>1; k -= 2)//读取的字节数为2
+		{
+			BYTE temp = *(char*)(rxdata + k);
+			BYTE bt1 = ((temp - 0x30)<10) ? (temp - 0x30) : (temp - 0x41 + 10);
+			temp = *(char*)(rxdata + k - 1);
+			BYTE bt2 = ((temp - 0x30)<10) ? (temp - 0x30) : (temp - 0x41 + 10);
+			BYTE bt = bt1 + bt2 * 16;
+			char p[10];
+			strtemp = itoa(bt, p, 2);
+			str.Format(_T("%08s,"), strtemp);
+		}
+
+		switch (i)
+		{
+		case 0:
+			for (int i = 0; i < 8; i++)
+				strFlag[i] = str[i];
+			break;
+		case 1:
+			for (int i = 0; i < 8; i++)
+				mFlag0[i] = str[i];
+			break;
+		case 2:
+			for (int i = 0; i < 8; i++)
+				mFlag16[i] = str[i];
+			break;
+		}
 	}
-	for (k = 2; k>1; k -= 2)//读取的字节数为2
+	
+	if (strFlag[0] == '1' && flag[0] == false)//Y轴左限位状态显示
 	{
-		BYTE temp = *(char*)(rxdata + k);
+		StateShow(_T(">>>Y轴到达左限位！"));
+		MessageBox(_T("Y轴到达左限位！"));
+		flag[0] = true;
+	}
+	else if (strFlag[0] == '0'&&flag[0] == true)
+	{
+		StateShow(_T(">>>Y轴离开左限位..."));
+		flag[0] = false;
 	}
 
+	if (strFlag[2] == '1' && flag[2] == false)//Y轴右限位状态显示
+	{
+		StateShow(_T(">>>Y轴到达右限位！"));
+		MessageBox(_T("Y轴到达右限位！"));
+		flag[2] = true;
+	}
+	else if (strFlag[2] == '0'&&flag[2] == true)
+	{
+		StateShow(_T(">>>Y轴离开右限位..."));
+		flag[2] = false;
+	}
+
+	if (strFlag[1] == '1' && flag[1] == false)//Y轴零位状态显示
+	{
+		StateShow(_T(">>>Y轴回到零位！"));
+		flag[1] = true;
+	}
+	else if (strFlag[1] == '0'&&flag[1] == true)
+	{
+		StateShow(_T(">>>Y轴离开零位..."));
+		flag[1] = false;
+	}
+
+	if (strFlag[3] == '1' && flag[3] == false)//X轴左限位状态显示
+	{
+		StateShow(_T(">>>X轴到达左限位！"));
+		MessageBox(_T("X轴到达左限位！"));
+		flag[3] = true;
+	}
+	else if (strFlag[3] == '0'&&flag[3] == true)
+	{
+		StateShow(_T(">>>X轴离开左限位..."));
+		flag[3] = false;
+	}
+
+	if (strFlag[5] == '1' && flag[5] == false)//X轴右限位状态显示
+	{
+		StateShow(_T(">>>X轴到达右限位！"));
+		MessageBox(_T("X轴到达右限位！"));
+		flag[5] = true;
+	}
+	else if (strFlag[5] == '0'&&flag[5] == true)
+	{
+		StateShow(_T(">>>X轴离开右限位..."));
+		flag[5] = false;
+	}
+
+	if (strFlag[4] == '1' && flag[4] == false)//X轴零位状态显示
+	{
+		StateShow(_T(">>>X轴回到零位！"));
+		flag[4] = true;
+	}
+	else if (strFlag[4] == '0'&&flag[4] == true)
+	{
+		StateShow(_T(">>>X轴离开零位..."));
+		flag[4] = false;
+	}
+	
 	CDialogEx::OnTimer(nIDEvent);
 }
 
@@ -267,26 +360,39 @@ void CXYPlatform::getSumChk(BYTE *datades, BYTE *datascr, int len)//计算校验码
 void CXYPlatform::sendCommand(const short index, int address, int byteNum, int data)
 {
 	UpdateData(true);
+	CByteArray send_data;
 	switch (index)
 	{
 	case 0:
-		break;
-	case 1:
-		CByteArray send_data;
-		BYTE commstr[15];
-		commstr[0] = 0x02;//开始码
-		commstr[1] = 0x31;//写入命令码
-		getAddress(&commstr[2], address);
-		getNum(&commstr[6], byteNum);
-		getData(&commstr[8], data);
-		commstr[12] = 0x03;//结束码
-		getSumChk(&commstr[13], &commstr[1], 12);
-		for (int i = 0; i < 15; i++)
+		BYTE commstr0[11];
+		commstr0[0] = 0x02;
+		commstr0[1] = 0x30;
+		getAddress(&commstr0[2], address);//将起始地址转换为ASCII码，并保存
+		getNum(&commstr0[6], byteNum);//第二个参数为字节数，转换为ASCII码，并保存
+		commstr0[8] = 0x03;
+		getSumChk(&commstr0[9], &commstr0[1], 8);
+		for (int i = 0; i < 11; i++)
 		{
-			send_data.Add(commstr[i]);
+			send_data.Add(commstr0[i]);
 		}
 		m_mscomm.put_Output(COleVariant(send_data));
-		Sleep(100);
+		Sleep(50);
+		break;
+	case 1:
+		BYTE commstr1[15];
+		commstr1[0] = 0x02;//开始码
+		commstr1[1] = 0x31;//写入命令码
+		getAddress(&commstr1[2], address);
+		getNum(&commstr1[6], byteNum);
+		getData(&commstr1[8], data);
+		commstr1[12] = 0x03;//结束码
+		getSumChk(&commstr1[13], &commstr1[1], 12);
+		for (int i = 0; i < 15; i++)
+		{
+			send_data.Add(commstr1[i]);
+		}
+		m_mscomm.put_Output(COleVariant(send_data));
+		Sleep(50);
 		break;
 	}
 }
@@ -313,4 +419,118 @@ void CXYPlatform::moveYRf()
 {
 	int address = 256, byteNum = 2, data = 64;
 	sendCommand(WRITE, address, byteNum, data);
+}
+
+void CXYPlatform::OnClose()
+{
+	// TODO:  在此添加消息处理程序代码和/或调用默认值
+	
+	CDialogEx::OnClose();
+}
+
+void CXYPlatform::getReturn(BYTE* rxdata, long* len)
+{
+	VARIANT variant_inp;
+	COleSafeArray safearray_inp;
+	LONG k;
+	variant_inp = m_mscomm.get_Input(); //读缓冲区
+	safearray_inp = variant_inp;  //VARIANT型变量转换为ColeSafeArray型变量
+	*len = safearray_inp.GetOneDimSize(); //得到有效数据长度
+	for (k = 0; k<*len; k++)
+	{
+		safearray_inp.GetElement(&k, rxdata + k);
+	}
+}
+
+void CXYPlatform::StateShow(CString str)
+{
+	m_StateInform.GetWindowTextW(m_XyState);
+	m_XyState += _T("\r\n") + str;
+	m_StateInform.SetWindowTextW(m_XyState);
+}
+
+void CXYPlatform::getXyState(int* state)
+{
+		*state = 0;
+	if (mFlag16[0] == '1'&&mFlag16[2] == '1')//平台在位置1
+		*state = 1;
+	if (mFlag16[2] == '1'&&strFlag[4] == '1')
+		*state = 2;
+	if (mFlag16[1] == '1'&&mFlag16[2] == '1')
+		*state = 3;
+	if (mFlag16[0] == '1'&&strFlag[1] == '1')
+		*state = 4;
+	if (strFlag[4] == '1'&&strFlag[1] == '1')
+		*state = 5;
+	if (strFlag[1] == '1'&&mFlag16[1] == '1')
+		*state = 6;
+	if (mFlag16[0] == '1'&&mFlag16[3] == '1')
+		*state = 7;
+	if (strFlag[4] == '1'&&mFlag16[3] == '1')
+		*state = 8;
+	if (mFlag16[3] == '1'&&mFlag16[3] == '1')
+		*state = 9;
+	if (strFlag[0] == '1' || strFlag[2] == '1' || strFlag[3] == '1' || strFlag[5] == '1')
+		*state = 10;
+}
+
+void CXYPlatform::moveAutoZero()
+{
+	int stateFlag = 0, loopNum = 0;
+	if (m_mscomm.get_PortOpen())
+	{
+		do
+		{
+			Sleep(1000);
+			getXyState(&stateFlag);
+			loopNum++;
+		} while (stateFlag != 0 || loopNum < 10);
+	}
+
+	int address = 256, byteNum = 2, data = 0;
+
+	switch (stateFlag)
+	{
+	case 0:
+		if (m_mscomm.get_PortOpen())
+		{
+			MessageBox(_T("XY平台有异常！"));
+			Sleep(5000);
+		}
+		break;
+	case 1:
+		data = 17;
+		sendCommand(WRITE, address, byteNum, data);
+		break;
+	case 2:
+		OnClickedBtnYrz();
+		break;
+	case 3:
+		data = 18;
+		sendCommand(WRITE, address, byteNum, data);
+		break;
+	case 4:
+		OnClickedBtnXrz();
+		break;
+	case 5:
+		OnClickedBtnStop();
+		break;
+	case 6:
+		OnClickedBtnXlz();
+		break;
+	case 7:
+		data = 33;
+		sendCommand(WRITE, address, byteNum, data);
+		break;
+	case 8:
+		OnClickedBtnYlz();
+		break;
+	case 9:
+		data = 34;
+		sendCommand(WRITE, address, byteNum, data);
+		break;
+	case 10:
+		OnClickedBtnStop();
+		break;
+	}
 }

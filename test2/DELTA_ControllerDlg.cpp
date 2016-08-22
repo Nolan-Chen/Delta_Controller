@@ -70,7 +70,7 @@ CDELTA_ControllerDlg::CDELTA_ControllerDlg(CWnd* pParent /*=NULL*/)
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
 	//初始化输入框数据
-	m_LoopTimes = 1;
+	//m_LoopTimes = 1;
 	m_Rtate = 0.0;
 	m_Pos_X = 0.0;
 	m_Pos_Y = 0.0;
@@ -100,13 +100,13 @@ void CDELTA_ControllerDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CSCARA_ControllerDlg)
-	DDX_Control(pDX, IDC_SLIDER_VEL,m_sliderVel);
+	DDX_Control(pDX, IDC_SLIDER_VEL, m_sliderVel);
 	//}}AFX_DATA_MAP
 	//  DDX_Text(pDX, IDC_EtEDITPOSITION_X, m_Pos_X);
 	//  DDX_Text(pDX, IDC_EtEDITPOSITION_Y, m_Pos_Y);
 	//  DDX_Text(pDX, IDC_EtEDITPOSITION_Z, m_Pos_Z);
 	//  DDX_Text(pDX, IDC_EtEDITPOSITION_R, m_Rotate);
-	DDX_Text(pDX, IDC_EtEDITPOSITION_LOOP, m_LoopTimes);
+	//  DDX_Text(pDX, IDC_EtEDITPOSITION_LOOP, m_LoopTimes);
 	DDX_Text(pDX, IDC_EtEDITPOSITION_R, m_Rtate);
 	DDX_Text(pDX, IDC_EtEDITPOSITION_X, m_Pos_X);
 	DDX_Text(pDX, IDC_EtEDITPOSITION_Y, m_Pos_Y);
@@ -116,6 +116,7 @@ void CDELTA_ControllerDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EtSetZero_X, m_Zero_X);
 	DDX_Text(pDX, IDC_EtSetZero_Y, m_Zero_Y);
 	DDX_Text(pDX, IDC_EtSetZero_Z, m_Zero_Z);
+	//  DDX_Control(pDX, IDC_DISPLAY, m_StateInform);
 }
 
 BEGIN_MESSAGE_MAP(CDELTA_ControllerDlg, CDialogEx)
@@ -144,11 +145,12 @@ BEGIN_MESSAGE_MAP(CDELTA_ControllerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON3, &CDELTA_ControllerDlg::OnBnClickedButton3)
 	ON_BN_CLICKED(IDC_BtStopOff, &CDELTA_ControllerDlg::OnBnClickedBtstopoff)
 	ON_WM_CLOSE()
-	ON_BN_CLICKED(IDC_BUTTON4, &CDELTA_ControllerDlg::OnBnClickedButton4)
+//	ON_BN_CLICKED(IDC_BUTTON4, &CDELTA_ControllerDlg::OnBnClickedButton4)
 	ON_COMMAND(ID_Exhibition, &CDELTA_ControllerDlg::OnExhibition)
 	ON_COMMAND(ID_Conveyor, &CDELTA_ControllerDlg::OnConveyor)
 	ON_EN_CHANGE(IDC_EtEDITPOSITION_X, &CDELTA_ControllerDlg::OnEnChangeEteditpositionX)
 	ON_COMMAND(ID_XYPLATEFORM_MONITOR, &CDELTA_ControllerDlg::OnXyplateformMonitor)
+//	ON_BN_CLICKED(IDC_BUTTON4, &CDELTA_ControllerDlg::OnBnClickedButton4)
 END_MESSAGE_MAP()
 
 
@@ -228,14 +230,6 @@ BOOL CDELTA_ControllerDlg::OnInitDialog()
 		int flag;
 		Trajectory tratest;
 		CString strtest;
-
-		/*flag = zerokine.IKine(P1,P0);
-		flag = zerokine.FKine(P0,P1);*/
-		//flag = tratest.StraightLine(P0,P1);
-		//flag = gtsmotion.Pvt_CompleteLoop(P0,P1,1,0);
-		/*strtest.Format(_T("%d"),flag);
-		index = m_pResultList->AddString(strtest);
-		m_pResultList->SetCurSel(index);*/
 	}
 
 	pXYPlatform->Create(IDD_XYDELTADLG);
@@ -362,7 +356,7 @@ void CDELTA_ControllerDlg::OnBnClickedBthandzero()
 	// TODO: 在此添加控件通知处理程序代码
 	BOOL gtsflag;
 	int zeroflag;
-	gtsflag = gtsmotion.SetZero();
+	gtsflag = m_gtsmotion.SetZero();
 
 	UpdateData(TRUE);
 
@@ -383,7 +377,7 @@ void CDELTA_ControllerDlg::OnBnClickedButton2()
 	short int velrate;
 
 	UpdateData(TRUE);         //刷新对话框，获取目标位置值
-	gtsmotion.GetCurPos(tranp0);  //得到当前坐标值
+	m_gtsmotion.GetCurPos(tranp0);  //得到当前坐标值
 	velrate = m_sliderVel.GetPos();
 
 	//获取目标值
@@ -395,8 +389,7 @@ void CDELTA_ControllerDlg::OnBnClickedButton2()
 	P0[1] = tranp0[1];
 	P0[2] = tranp0[2];
 
-	/*flag = gtsmotion.Pvt_CompleteLoop(P0,P1,m_Int,m_LoopTimes);*/
-	flag = gtsmotion.Pvt_DynamicPT(P0,P1,1,velrate);
+	flag = m_gtsmotion.Pvt_DynamicPT(P0,P1,1,velrate);
 
 	if (flag == 0)
 	{
@@ -416,7 +409,7 @@ void CDELTA_ControllerDlg::OnBnClickedBtautozero()
 	short int velrate;
 
 	UpdateData(TRUE);         //刷新对话框，获取目标位置值
-	gtsmotion.GetCurPos(tranp0);  //得到当前坐标值
+	m_gtsmotion.GetCurPos(tranp0);  //得到当前坐标值
 	velrate = m_sliderVel.GetPos();
 
 	//获取目标值
@@ -428,8 +421,8 @@ void CDELTA_ControllerDlg::OnBnClickedBtautozero()
 	P0[1] = tranp0[1];
 	P0[2] = tranp0[2];
 
-	/*flag = gtsmotion.Pvt_CompleteLoop(P0,P1,m_Int,1);*/
-	flag = gtsmotion.Pvt_DynamicPT(P0,P1,1,velrate);
+	/*flag = m_gtsmotion.Pvt_CompleteLoop(P0,P1,m_Int,1);*/
+	flag = m_gtsmotion.Pvt_DynamicPT(P0,P1,1,velrate);
 
 	if (flag == 0)
 	{
@@ -442,42 +435,42 @@ void CDELTA_ControllerDlg::OnBnClickedBtautozero()
 void CDELTA_ControllerDlg::OnBnClickedBtjog1P()
 {
 	// TODO: Add your control notification handler code here
-	gtsmotion.Jog_Test(AXIS_X,'P');
+	m_gtsmotion.Jog_Test(AXIS_X,'P');
 }
 
 
 void CDELTA_ControllerDlg::OnBnClickedBtjog1N()
 {
 	// TODO: Add your control notification handler code here
-	gtsmotion.Jog_Test(AXIS_X,'N');
+	m_gtsmotion.Jog_Test(AXIS_X,'N');
 }
 
 
 void CDELTA_ControllerDlg::OnBnClickedBtjog2P()
 {
 	// TODO: Add your control notification handler code here
-	gtsmotion.Jog_Test(AXIS_Y,'P');
+	m_gtsmotion.Jog_Test(AXIS_Y,'P');
 }
 
 
 void CDELTA_ControllerDlg::OnBnClickedBtjog2N()
 {
 	// TODO: Add your control notification handler code here
-	gtsmotion.Jog_Test(AXIS_Y,'N');
+	m_gtsmotion.Jog_Test(AXIS_Y,'N');
 }
 
 
 void CDELTA_ControllerDlg::OnBnClickedBtjog3P()
 {
 	// TODO: Add your control notification handler code here
-	gtsmotion.Jog_Test(AXIS_Z,'P');
+	m_gtsmotion.Jog_Test(AXIS_Z,'P');
 }
 
 
 void CDELTA_ControllerDlg::OnBnClickedBtjog3N()
 {
 	// TODO: Add your control notification handler code here
-	gtsmotion.Jog_Test(AXIS_Z,'N');
+	m_gtsmotion.Jog_Test(AXIS_Z,'N');
 }
 
 
@@ -485,6 +478,7 @@ void CDELTA_ControllerDlg::OnBnClickedButton3()
 {
 	// TODO: Add your control notification handler code here
 	m_gtsmotion.Ena_Stop('E');
+	int index = m_pResultList->InsertString(-1, _T(">>伺服使能成功"));
 }
 
 
@@ -492,32 +486,35 @@ void CDELTA_ControllerDlg::OnBnClickedBtstopoff()
 {
 	// TODO: Add your control notification handler code here
 	m_gtsmotion.Ena_Stop('S');
+	int index = m_pResultList->InsertString(-1, _T(">>伺服关闭"));
 }
 
 
 void CDELTA_ControllerDlg::OnClose()
 {
 	// TODO: Add your message handler code here and/or call default
+	int index = m_pResultList->InsertString(-1, _T(">>正在关闭XY平台"));
+	pXYPlatform->moveAutoZero();
+	index = m_pResultList->InsertString(-1, _T(">>DELTA平台回零中"));
+	OnBnClickedBtautozero();
 	m_gtsmotion.Ena_Stop('C');
 	CDialogEx::OnClose();
 }
 
 
-void CDELTA_ControllerDlg::OnBnClickedButton4()
-{
-	// TODO: Add your control notification handler code here
-
-
-	UpdateData(TRUE);         //刷新对话框，获取循环次数
-
-	extern long T_gap;         //步长时间间隔
-	extern int n;                 //步数
-	for (int i=0;i<m_LoopTimes;i++)
-	{
-		OnBnClickedButton2();
-		OnBnClickedBtautozero();
-	}
-}
+//void CDELTA_ControllerDlg::OnBnClickedButton4()
+//{
+//	// TODO: Add your control notification handler code here
+//	UpdateData(TRUE);         //刷新对话框，获取循环次数
+//
+//	extern long T_gap;         //步长时间间隔
+//	extern int n;                 //步数
+//	for (int i=0;i<m_LoopTimes;i++)
+//	{
+//		OnBnClickedButton2();
+//		OnBnClickedBtautozero();
+//	}
+//}
 
 
 void CAboutDlg::OnDestroy()

@@ -28,6 +28,9 @@ private:
 	void getData(BYTE *data, int i);//获取写入的数据
 	void getSumChk(BYTE *datades, BYTE *datascr, int len);//获取检验和
 	void sendCommand(const short index, int address, int byteNum, int data);
+	void StateShow(CString str);
+	void getReturn(BYTE* rxdata, long* len);
+	virtual BOOL OnInitDialog();
 
 	afx_msg void OnClickedBtnOpen();
 	afx_msg void OnClickedBtnStop();
@@ -37,15 +40,20 @@ private:
 	afx_msg void OnClickedBtnYrz();
 	afx_msg void OnClickedBtnYlz();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnClose();
 
-public:
-	// 串口通讯对象
 	CMscomm m_mscomm;
 	CString m_XyState;
 	CComboBox m_SerialPort;
-	virtual BOOL OnInitDialog();
+	CEdit m_StateInform;
+	CString strFlag[8], mFlag0[8], mFlag16[8];
+
+public:
+	// 串口通讯对象
 	void moveXLf();
 	void moveXRf();
 	void moveYLf();
 	void moveYRf();
+	void getXyState(int* state);
+	void moveAutoZero();
 };

@@ -117,10 +117,6 @@ bool GtsMotion::GetCurPos(double* curpos)
 	int flag;
 
 	WaitMotor();//等待电机运动到位，进入误差带
-	/*if (waitMotorFlag == false)
-	{
-		return false;
-	}*/
 	sRtn = GT_GetEncPos(AXIS_X,pVal,AXIS_Z);//获取AXIS轴的编码器位置
 
 	//获取关节转角：已转过角度加上零位时候的角度
