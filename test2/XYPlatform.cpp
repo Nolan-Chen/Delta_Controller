@@ -70,6 +70,7 @@ void CXYPlatform::OnClickedBtnOpen()
 		if (m_mscomm.get_PortOpen())
 		{
 			SetTimer(1, 300, NULL);
+			timerInit = true;
 			str = _T("关闭串口");
 			UpdateData(true);
 			h_BtnOpen->SetWindowTextW(str);//改变按钮名称为“关闭串口”
@@ -79,6 +80,7 @@ void CXYPlatform::OnClickedBtnOpen()
 	else
 	{
 		KillTimer(1);
+		OnClickedBtnStop();
 		m_mscomm.put_PortOpen(false);
 		str = _T("打开串口");
 		UpdateData(true);
@@ -132,8 +134,6 @@ void CXYPlatform::OnClickedBtnXrz()
 	// TODO:  在此添加控件通知处理程序代码
 	int address = 256, byteNum = 2, data = 1;
 	sendCommand(WRITE, address, byteNum, data);
-	//SetTimer(1, 300, NULL);
-	moveYRf();
 }
 
 
@@ -142,7 +142,6 @@ void CXYPlatform::OnClickedBtnXlz()
 	// TODO:  在此添加控件通知处理程序代码
 	int address = 256, byteNum = 2, data = 2;
 	sendCommand(WRITE, address, byteNum, data);
-	moveYLf();
 }
 
 
@@ -213,6 +212,16 @@ void CXYPlatform::OnTimer(UINT_PTR nIDEvent)//周期性检测输入端口状态
 
 		sendCommand(READ, m_addressH, byteNum, NULL);
 		getReturn(rxdata, &len);//获取接收缓冲区的返回值
+
+		for (k = 0; k < len; k++)//将数组转换为CString型变量
+		{
+			BYTE bt = *(char*)(rxdata);//字符型
+			strtemp.Format(_T("%02X"), bt);
+		}
+		if (strtemp == "06")//响应请求
+			break;
+			//MessageBox(_T("与PLC通讯正常!", "与PLC通讯检测"));
+
 		for (k = 2; k>1; k -= 2)//读取的字节数为2
 		{
 			BYTE temp = *(char*)(rxdata + k);
@@ -228,88 +237,99 @@ void CXYPlatform::OnTimer(UINT_PTR nIDEvent)//周期性检测输入端口状态
 		switch (i)
 		{
 		case 0:
-			for (int i = 0; i < 8; i++)
-				strFlag[i] = str[i];
+			for (int i = 0, j = 7; i < 8; i++, j--)
+				strFlag[j] = str[i];
 			break;
 		case 1:
-			for (int i = 0; i < 8; i++)
-				mFlag0[i] = str[i];
+			for (int i = 0, j = 7; i < 8; i++, j--)
+				mFlag0[j] = str[i];
 			break;
 		case 2:
-			for (int i = 0; i < 8; i++)
-				mFlag16[i] = str[i];
+			for (int i = 0, j = 7; i < 8; i++, j--)
+				mFlag16[j] = str[i];
 			break;
 		}
 	}
 	
-	if (strFlag[0] == '1' && flag[0] == false)//Y轴左限位状态显示
+	if (timerInit == false && strtemp != "06" && strtemp != "15")
 	{
-		StateShow(_T(">>>Y轴到达左限位！"));
-		MessageBox(_T("Y轴到达左限位！"));
-		flag[0] = true;
-	}
-	else if (strFlag[0] == '0'&&flag[0] == true)
-	{
-		StateShow(_T(">>>Y轴离开左限位..."));
-		flag[0] = false;
-	}
+		if (strFlag[0] == '1' && flag[0] == false)//Y轴左限位状态显示
+		{
+			StateShow(_T(">>>Y轴到达左限位！"));
+			MessageBox(_T("Y轴到达左限位！"));
+			flag[0] = true;
+		}
+		else if (strFlag[0] == '0'&&flag[0] == true)
+		{
+			StateShow(_T(">>>Y轴离开左限位..."));
+			flag[0] = false;
+		}
 
-	if (strFlag[2] == '1' && flag[2] == false)//Y轴右限位状态显示
-	{
-		StateShow(_T(">>>Y轴到达右限位！"));
-		MessageBox(_T("Y轴到达右限位！"));
-		flag[2] = true;
-	}
-	else if (strFlag[2] == '0'&&flag[2] == true)
-	{
-		StateShow(_T(">>>Y轴离开右限位..."));
-		flag[2] = false;
-	}
+		if (strFlag[2] == '1' && flag[2] == false)//Y轴右限位状态显示
+		{
+			StateShow(_T(">>>Y轴到达右限位！"));
+			MessageBox(_T("Y轴到达右限位！"));
+			flag[2] = true;
+		}
+		else if (strFlag[2] == '0'&&flag[2] == true)
+		{
+			StateShow(_T(">>>Y轴离开右限位..."));
+			flag[2] = false;
+		}
 
-	if (strFlag[1] == '1' && flag[1] == false)//Y轴零位状态显示
-	{
-		StateShow(_T(">>>Y轴回到零位！"));
-		flag[1] = true;
-	}
-	else if (strFlag[1] == '0'&&flag[1] == true)
-	{
-		StateShow(_T(">>>Y轴离开零位..."));
-		flag[1] = false;
-	}
+		if (strFlag[1] == '1' && flag[1] == false)//Y轴零位状态显示
+		{
+			StateShow(_T(">>>Y轴回到零位！"));
+			flag[1] = true;
+		}
+		else if (strFlag[1] == '0'&&flag[1] == true)
+		{
+			StateShow(_T(">>>Y轴离开零位..."));
+			flag[1] = false;
+		}
 
-	if (strFlag[3] == '1' && flag[3] == false)//X轴左限位状态显示
-	{
-		StateShow(_T(">>>X轴到达左限位！"));
-		MessageBox(_T("X轴到达左限位！"));
-		flag[3] = true;
-	}
-	else if (strFlag[3] == '0'&&flag[3] == true)
-	{
-		StateShow(_T(">>>X轴离开左限位..."));
-		flag[3] = false;
-	}
+		if (strFlag[3] == '1' && flag[3] == false)//X轴左限位状态显示
+		{
+			StateShow(_T(">>>X轴到达左限位！"));
+			MessageBox(_T("X轴到达左限位！"));
+			flag[3] = true;
+		}
+		else if (strFlag[3] == '0'&&flag[3] == true)
+		{
+			StateShow(_T(">>>X轴离开左限位..."));
+			flag[3] = false;
+		}
 
-	if (strFlag[5] == '1' && flag[5] == false)//X轴右限位状态显示
-	{
-		StateShow(_T(">>>X轴到达右限位！"));
-		MessageBox(_T("X轴到达右限位！"));
-		flag[5] = true;
-	}
-	else if (strFlag[5] == '0'&&flag[5] == true)
-	{
-		StateShow(_T(">>>X轴离开右限位..."));
-		flag[5] = false;
-	}
+		if (strFlag[5] == '1' && flag[5] == false)//X轴右限位状态显示
+		{
+			StateShow(_T(">>>X轴到达右限位！"));
+			MessageBox(_T("X轴到达右限位！"));
+			flag[5] = true;
+		}
+		else if (strFlag[5] == '0'&&flag[5] == true)
+		{
+			StateShow(_T(">>>X轴离开右限位..."));
+			flag[5] = false;
+		}
 
-	if (strFlag[4] == '1' && flag[4] == false)//X轴零位状态显示
-	{
-		StateShow(_T(">>>X轴回到零位！"));
-		flag[4] = true;
+		if (strFlag[4] == '1' && flag[4] == false)//X轴零位状态显示
+		{
+			StateShow(_T(">>>X轴回到零位！"));
+			flag[4] = true;
+		}
+		else if (strFlag[4] == '0'&&flag[4] == true)
+		{
+			StateShow(_T(">>>X轴离开零位..."));
+			flag[4] = false;
+		}
 	}
-	else if (strFlag[4] == '0'&&flag[4] == true)
+	else if (strtemp == "15")
 	{
-		StateShow(_T(">>>X轴离开零位..."));
-		flag[4] = false;
+		MessageBox(_T("信号发送失败，请重新发送！"));
+	}
+	else
+	{
+		timerInit = false;
 	}
 	
 	CDialogEx::OnTimer(nIDEvent);
@@ -533,4 +553,12 @@ void CXYPlatform::moveAutoZero()
 		OnClickedBtnStop();
 		break;
 	}
+}
+
+BOOL CXYPlatform::serialPortState()
+{
+	if (m_mscomm.get_PortOpen())
+		return TRUE;
+	else
+		return FALSE;
 }

@@ -38,7 +38,6 @@ private:
 	CExhibiton* pES;
 	CConveyor* pCT;
 	CXYPlatform* pXYPlatform;
-//	int m_LoopTimes;
 	double m_Rtate;
 	double m_Pos_X;
 	double m_Pos_Y;
@@ -48,7 +47,7 @@ private:
 	double m_Zero_Y;
 	double m_Zero_Z;
 	CStrokeLimitDlg m_iStrLimDlg;
-	CMonitor m_iMonitor;
+	CMonitor* pMonitor;
 	CSliderCtrl	m_sliderVel;
 	//滑条的速度...................
 	CListBox* m_pResultList;
@@ -76,7 +75,6 @@ public:
 	afx_msg void OnBnClickedButton3();
 	afx_msg void OnBnClickedBtstopoff();
 	afx_msg void OnClose();
-//	afx_msg void OnBnClickedButton4();
 	afx_msg void OnExhibition();
 	afx_msg void OnConveyor();
 	afx_msg void OnEnChangeEteditpositionX();

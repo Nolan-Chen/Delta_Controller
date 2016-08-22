@@ -84,6 +84,7 @@ CDELTA_ControllerDlg::CDELTA_ControllerDlg(CWnd* pParent /*=NULL*/)
 	pXYPlatform = new CXYPlatform();
 	pES = NULL;
 	pCT = NULL;
+	pMonitor = NULL;
 }
 
 CDELTA_ControllerDlg::~CDELTA_ControllerDlg()
@@ -303,7 +304,10 @@ void CDELTA_ControllerDlg::OnSetStrokelimit()
 void CDELTA_ControllerDlg::OnMonitorStart()
 {
 	// TODO: Add your command handler code here
-	m_iMonitor.DoModal();
+	if (pMonitor)delete pMonitor;
+	pMonitor = new CMonitor();   //给指针分配内存
+	pMonitor->Create(IDD_Monitor_DIALOG); //创建一个非模态对话框
+	pMonitor->ShowWindow(SW_SHOWNORMAL);  //显示非模态对话框
 }
 
 void CDELTA_ControllerDlg::OnExhibition()
@@ -323,7 +327,9 @@ void CDELTA_ControllerDlg::OnBnClickedBtstop()
 	{
 		int index = m_pResultList->InsertString(-1, _T(">>停止运动"));
 		m_pResultList->SetCurSel(index);
-	}	
+	}
+	if (pXYPlatform->serialPortState())
+		pXYPlatform->OnClickedBtnStop();
 }
 
 
@@ -495,27 +501,13 @@ void CDELTA_ControllerDlg::OnClose()
 	// TODO: Add your message handler code here and/or call default
 	int index = m_pResultList->InsertString(-1, _T(">>正在关闭XY平台"));
 	pXYPlatform->moveAutoZero();
+	if (pXYPlatform->serialPortState())
+		pXYPlatform->OnClickedBtnStop();
 	index = m_pResultList->InsertString(-1, _T(">>DELTA平台回零中"));
 	OnBnClickedBtautozero();
 	m_gtsmotion.Ena_Stop('C');
 	CDialogEx::OnClose();
 }
-
-
-//void CDELTA_ControllerDlg::OnBnClickedButton4()
-//{
-//	// TODO: Add your control notification handler code here
-//	UpdateData(TRUE);         //刷新对话框，获取循环次数
-//
-//	extern long T_gap;         //步长时间间隔
-//	extern int n;                 //步数
-//	for (int i=0;i<m_LoopTimes;i++)
-//	{
-//		OnBnClickedButton2();
-//		OnBnClickedBtautozero();
-//	}
-//}
-
 
 void CAboutDlg::OnDestroy()
 {

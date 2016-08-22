@@ -33,7 +33,6 @@ private:
 	virtual BOOL OnInitDialog();
 
 	afx_msg void OnClickedBtnOpen();
-	afx_msg void OnClickedBtnStop();
 	afx_msg void OnClickedBtnLoop();
 	afx_msg void OnClickedBtnXrz();
 	afx_msg void OnClickedBtnXlz();
@@ -47,13 +46,16 @@ private:
 	CComboBox m_SerialPort;
 	CEdit m_StateInform;
 	CString strFlag[8], mFlag0[8], mFlag16[8];
+	bool timerInit;
 
 public:
 	// 串口通讯对象
+	afx_msg void OnClickedBtnStop();
 	void moveXLf();
 	void moveXRf();
 	void moveYLf();
 	void moveYRf();
 	void getXyState(int* state);
 	void moveAutoZero();
+	BOOL serialPortState();
 };
