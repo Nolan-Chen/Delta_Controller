@@ -6,6 +6,7 @@
 #include "XYPlatform.h"
 #include "afxdialogex.h"
 #include "Robot.h"
+#include <cmath>
 
 // CXYPlatform 对话框
 
@@ -625,4 +626,86 @@ void CXYPlatform::moveXyPlatform(int data)
 {
 	int address = 256, byteNum = 2;
 	sendCommand(WRITE, address, byteNum, data);
+}
+
+bool CXYPlatform::actionScheme(double* targetPos, double* deltaTarget)
+{
+	//XY平台控制逻辑
+	int XyCurrentPosition, XyTargetPosition, XyData = 0;
+	double pos[2], XyTarget_X, XyTarget_Y;//记录XY平台位置
+	getXyState(&XyCurrentPosition, pos);
+	if (XyCurrentPosition > 0 && XyCurrentPosition < 10)
+	{
+		double distance = std::sqrt(std::powf(std::fabs(*(targetPos + 0) - pos[0]), 2) + std::powf(std::fabs(*(targetPos + 1) - pos[1]), 2));
+		if (distance <= 150)
+		{
+			//获取delta目标值
+			*(deltaTarget+0) = *(targetPos + 1);
+			*(deltaTarget + 1) = -(*(targetPos + 0));
+			*(deltaTarget + 2) = *(targetPos + 2) - 247.0;
+		}
+		else
+		{
+			int X_Index = 0, Y_Index = 0;
+			if (*(targetPos + 0) < -(rectangleSize / 2)) X_Index = 1;
+			else if (*(targetPos + 0)>(rectangleSize / 2)) X_Index = 3;
+			else X_Index = 2;
+			if (*(targetPos + 1) > (rectangleSize / 2)) Y_Index = 1;
+			else if (*(targetPos + 1) < -(rectangleSize / 2)) Y_Index = 3;
+			else Y_Index = 2;
+			XyTargetPosition = (Y_Index - 1) * 3 + X_Index;
+			XyTarget_X = (X_Index - 2) * rectangleSize;
+			XyTarget_Y = -(Y_Index - 2) * rectangleSize;
+
+			//获取delta目标值
+			*(deltaTarget + 0) = *(targetPos + 1) - XyTarget_Y;
+			*(deltaTarget + 1) = -(*(targetPos + 0) - XyTarget_X);
+			*(deltaTarget + 2) = *(targetPos + 2) - 247.0;
+
+			//获取XY平台的指令数据
+			if (XyTarget_X > pos[0]) XyData = 4;
+			else if (XyTarget_X == pos[0]) XyData = 0;
+			else XyData = 8;
+
+			if (XyTarget_Y > pos[1]) XyData += 128;
+			else if (XyTarget_Y == pos[1]) XyData += 0;
+			else XyData += 64;
+
+			moveXyPlatform(XyData);
+
+			do
+			{
+				getXyState(&XyCurrentPosition, pos);
+				if (XyCurrentPosition != 0)
+				{
+					if (pos[0] == XyTarget_X && pos[1] == XyTarget_Y)
+						break;
+					else
+					{
+						//获取XY平台的指令数据
+						if (XyTarget_X > pos[0]) XyData = 4;
+						else if (XyTarget_X == pos[0]) XyData = 0;
+						else XyData = 8;
+
+						if (XyTarget_Y > pos[1]) XyData += 128;
+						else if (XyTarget_Y == pos[1]) XyData += 0;
+						else XyData += 64;
+
+						moveXyPlatform(XyData);
+					}
+				}
+			} while (XyCurrentPosition == 0);
+
+			do
+			{
+				getXyState(&XyCurrentPosition, pos);
+			} while (XyCurrentPosition == 0);
+		}
+	}
+	else
+	{
+		return false;
+	}
+	//XY
+	return true;
 }

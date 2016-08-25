@@ -60,4 +60,5 @@ public:
 	void moveAutoZero();
 	void moveXyPlatform(int data);
 	BOOL serialPortState();
+	bool actionScheme(double* targetPos, double *deltaTarget);
 };

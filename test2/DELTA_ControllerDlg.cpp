@@ -372,60 +372,53 @@ void CDELTA_ControllerDlg::OnBnClickedBthandzero()
 void CDELTA_ControllerDlg::OnBnClickedButton2()
 {
 	// TODO: 在此添加控件通知处理程序代码
+	UpdateData(TRUE);         //刷新对话框，获取坐标点值
+	if (m_Pos_X<-(rectangleSize + 100) || m_Pos_X>(rectangleSize + 100))
+	{
+		MessageBox(_T("请输入X范围（-300至300)"));
+		return;
+	}
+	if (m_Pos_Y<-(rectangleSize + 100) || m_Pos_Y>(rectangleSize + 100))
+	{
+		MessageBox(_T("请输入Y范围（-300至300)"));
+		return;
+	}
+	if (m_Pos_Z<547 || m_Pos_Z>747)
+	{
+		MessageBox(_T("请输入Z范围（547至747)"));
+		return;
+	}
+	AfxBeginThread(_threadRobotActionTest, (void*)this);
+}
+
+UINT __cdecl CDELTA_ControllerDlg::_threadRobotActionTest(LPVOID pParam)
+{
+	CDELTA_ControllerDlg *deltaAction = (CDELTA_ControllerDlg*)pParam;
+
+	deltaAction->threadRobotAction();
+	//UpdateData(FALSE);
+	return 0;
+}
+
+void CDELTA_ControllerDlg::threadRobotAction()
+{
 	short flag;
 	double tranp0[3];
-	short int velrate, XyData = 0;
+	short int velrate;
+	double targetPos[3];
 
-	UpdateData(TRUE);         //刷新对话框，获取目标位置值
 	m_gtsmotion.GetCurPos(tranp0);  //得到当前坐标值
 	velrate = m_sliderVel.GetPos();
 
-	//XY平台控制逻辑
-	int XyCurrentPosition, XyTargetPosition;
-	double pos[2], XyTarget_X, XyTarget_Y;//记录XY平台位置
-	pXYPlatform->getXyState(&XyCurrentPosition, pos);
-	if (XyCurrentPosition > 0 && XyCurrentPosition < 10)
+	targetPos[0] = m_Pos_X;
+	targetPos[1] = m_Pos_Y;
+	targetPos[2] = m_Pos_Z;
+
+	bool XySchemeFlag;
+	XySchemeFlag = pXYPlatform->actionScheme(targetPos, P1);
+	if (XySchemeFlag == false)
 	{
-		double distance = std::sqrt(std::powf(std::fabs(m_Pos_X - pos[0]), 2) + std::powf(std::fabs(m_Pos_Y - pos[1]), 2));
-		if (distance <= 150)
-		{
-			//获取delta目标值
-			P1[0] = m_Pos_Y;
-			P1[1] = -m_Pos_X;
-			P1[2] = m_Pos_Z - 247.0;
-		}
-		else
-		{
-			int X_Index = 0, Y_Index = 0;
-			if (m_Pos_X < -(rectangleSize / 2)) X_Index = 1;
-			else if (m_Pos_X>(rectangleSize / 2)) X_Index = 3;
-			else X_Index = 2;
-			if (m_Pos_Y > (rectangleSize / 2)) Y_Index = 1;
-			else if (m_Pos_Y < -(rectangleSize / 2)) Y_Index = 3;
-			else Y_Index = 2;
-			XyTargetPosition = (Y_Index-1) * 3 + X_Index;
-			XyTarget_X = (X_Index - 2) * rectangleSize;
-			XyTarget_Y = -(Y_Index - 2) * rectangleSize;
-
-			//获取delta目标值
-			P1[0] = m_Pos_Y-XyTarget_Y;
-			P1[1] = -(m_Pos_X - XyTarget_X);
-			P1[2] = m_Pos_Z - 247.0;
-
-			//获取XY平台的指令数据
-			if (XyTarget_X > pos[0]) XyData = 4;
-			else if (XyTarget_X == pos[0]) XyData = 0;
-			else XyData = 8;
-
-			if (XyTarget_Y > pos[1]) XyData += 128;
-			else if (XyTarget_Y == pos[1]) XyData += 0;
-			else XyData += 64;
-
-			pXYPlatform->moveXyPlatform(XyData);
-		}
-	}
-	else
-	{
+		MessageBox(_T("XY平台运动中！"));
 		return;
 	}
 
@@ -433,11 +426,11 @@ void CDELTA_ControllerDlg::OnBnClickedButton2()
 	P0[1] = tranp0[1];
 	P0[2] = tranp0[2];
 
-	flag = m_gtsmotion.Pvt_DynamicPT(P0,P1,1,velrate);
+	flag = m_gtsmotion.Pvt_DynamicPT(P0, P1, 1, velrate);
 
 	if (flag == 0)
 	{
-		int index = m_pResultList->InsertString (-1,_T(">>超出工作空间，请重新输入"));
+		int index = m_pResultList->InsertString(-1, _T(">>超出工作空间，请重新输入"));
 		m_pResultList->SetCurSel(index);
 	}
 }
@@ -594,3 +587,4 @@ void CDELTA_ControllerDlg::OnBnClickedXyshowbtn()
 	// TODO:  在此添加控件通知处理程序代码
 	pXYPlatform->ShowWindow(SW_SHOWNORMAL);
 }
+

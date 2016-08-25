@@ -35,6 +35,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 private:
+	static UINT __cdecl _threadRobotActionTest(LPVOID pParam);
 	CExhibiton* pES;
 	CConveyor* pCT;
 	CXYPlatform* pXYPlatform;
@@ -79,7 +80,7 @@ public:
 	afx_msg void OnConveyor();
 	afx_msg void OnEnChangeEteditpositionX();
 	afx_msg void OnXyplateformMonitor();
-
+	void threadRobotAction();
 	void getXyPosition(double* pos);
 	afx_msg void OnBnClickedXyshowbtn();
 };
