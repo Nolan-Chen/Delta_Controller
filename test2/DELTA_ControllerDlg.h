@@ -80,6 +80,6 @@ public:
 	afx_msg void OnEnChangeEteditpositionX();
 	afx_msg void OnXyplateformMonitor();
 
-//	afx_msg void OnBnClickedButton4();
-//	CListBox m_StateInform;
+	void getXyPosition(double* pos);
+	afx_msg void OnBnClickedXyshowbtn();
 };

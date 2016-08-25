@@ -7,6 +7,7 @@
 #include "DELTA_ControllerDlg.h"
 #include "afxdialogex.h"
 #include "conio.h"
+#include <cmath>
 #pragma comment(lib,"gts.lib")
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -74,11 +75,11 @@ CDELTA_ControllerDlg::CDELTA_ControllerDlg(CWnd* pParent /*=NULL*/)
 	m_Rtate = 0.0;
 	m_Pos_X = 0.0;
 	m_Pos_Y = 0.0;
-	m_Pos_Z = 326.19012184371931;
+	m_Pos_Z = 573.19012184371931;
 	m_Zero_R = 0.0;
 	m_Zero_X = 0.0;
 	m_Zero_Y = 0.0;
-	m_Zero_Z = 326.19012184371931;
+	m_Zero_Z = 573.19012184371931;
 
 	//指针初始化
 	pXYPlatform = new CXYPlatform();
@@ -103,21 +104,14 @@ void CDELTA_ControllerDlg::DoDataExchange(CDataExchange* pDX)
 	//{{AFX_DATA_MAP(CSCARA_ControllerDlg)
 	DDX_Control(pDX, IDC_SLIDER_VEL, m_sliderVel);
 	//}}AFX_DATA_MAP
-	//  DDX_Text(pDX, IDC_EtEDITPOSITION_X, m_Pos_X);
-	//  DDX_Text(pDX, IDC_EtEDITPOSITION_Y, m_Pos_Y);
-	//  DDX_Text(pDX, IDC_EtEDITPOSITION_Z, m_Pos_Z);
-	//  DDX_Text(pDX, IDC_EtEDITPOSITION_R, m_Rotate);
-	//  DDX_Text(pDX, IDC_EtEDITPOSITION_LOOP, m_LoopTimes);
 	DDX_Text(pDX, IDC_EtEDITPOSITION_R, m_Rtate);
 	DDX_Text(pDX, IDC_EtEDITPOSITION_X, m_Pos_X);
 	DDX_Text(pDX, IDC_EtEDITPOSITION_Y, m_Pos_Y);
 	DDX_Text(pDX, IDC_EtEDITPOSITION_Z, m_Pos_Z);
 	DDX_Text(pDX, IDC_EtSetZero_R, m_Zero_R);
-	//  DDX_Control(pDX, IDC_EtSetZero_X, m_Zero_X);
 	DDX_Text(pDX, IDC_EtSetZero_X, m_Zero_X);
 	DDX_Text(pDX, IDC_EtSetZero_Y, m_Zero_Y);
 	DDX_Text(pDX, IDC_EtSetZero_Z, m_Zero_Z);
-	//  DDX_Control(pDX, IDC_DISPLAY, m_StateInform);
 }
 
 BEGIN_MESSAGE_MAP(CDELTA_ControllerDlg, CDialogEx)
@@ -152,6 +146,7 @@ BEGIN_MESSAGE_MAP(CDELTA_ControllerDlg, CDialogEx)
 	ON_EN_CHANGE(IDC_EtEDITPOSITION_X, &CDELTA_ControllerDlg::OnEnChangeEteditpositionX)
 	ON_COMMAND(ID_XYPLATEFORM_MONITOR, &CDELTA_ControllerDlg::OnXyplateformMonitor)
 //	ON_BN_CLICKED(IDC_BUTTON4, &CDELTA_ControllerDlg::OnBnClickedButton4)
+ON_BN_CLICKED(IDC_XyShowBtn, &CDELTA_ControllerDlg::OnBnClickedXyshowbtn)
 END_MESSAGE_MAP()
 
 
@@ -219,7 +214,7 @@ BOOL CDELTA_ControllerDlg::OnInitDialog()
 		OnBnClickedBthandzero();
 		//启动关节监控
 		OnetimeFlag = TRUE;
-		SetTimer(1,50,NULL);
+		//SetTimer(1,50,NULL);
 	}
 	else
 	{
@@ -369,27 +364,70 @@ void CDELTA_ControllerDlg::OnBnClickedBthandzero()
 	//将起点、终点初始化为零点
 	P1[0] = P0[0] = ovalue[0] = m_Zero_X;
 	P1[1] = P0[1] = ovalue[1] = m_Zero_Y;
-	P1[2] = P0[2] = ovalue[2] = m_Zero_Z;
+	P1[2] = P0[2] = ovalue[2] = m_Zero_Z-247;
 
 	zeroflag = zerokine.IKine(ovalue,zeroposAng);
 }
-
 
 void CDELTA_ControllerDlg::OnBnClickedButton2()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	short flag;
 	double tranp0[3];
-	short int velrate;
+	short int velrate, XyData = 0;
 
 	UpdateData(TRUE);         //刷新对话框，获取目标位置值
 	m_gtsmotion.GetCurPos(tranp0);  //得到当前坐标值
 	velrate = m_sliderVel.GetPos();
 
-	//获取目标值
-	P1[0] = m_Pos_X;
-	P1[1] = m_Pos_Y;
-	P1[2] = m_Pos_Z;
+	//XY平台控制逻辑
+	int XyCurrentPosition, XyTargetPosition;
+	double pos[2], XyTarget_X, XyTarget_Y;//记录XY平台位置
+	pXYPlatform->getXyState(&XyCurrentPosition, pos);
+	if (XyCurrentPosition > 0 && XyCurrentPosition < 10)
+	{
+		double distance = std::sqrt(std::powf(std::fabs(m_Pos_X - pos[0]), 2) + std::powf(std::fabs(m_Pos_Y - pos[1]), 2));
+		if (distance <= 150)
+		{
+			//获取delta目标值
+			P1[0] = m_Pos_Y;
+			P1[1] = -m_Pos_X;
+			P1[2] = m_Pos_Z - 247.0;
+		}
+		else
+		{
+			int X_Index = 0, Y_Index = 0;
+			if (m_Pos_X < -(rectangleSize / 2)) X_Index = 1;
+			else if (m_Pos_X>(rectangleSize / 2)) X_Index = 3;
+			else X_Index = 2;
+			if (m_Pos_Y > (rectangleSize / 2)) Y_Index = 1;
+			else if (m_Pos_Y < -(rectangleSize / 2)) Y_Index = 3;
+			else Y_Index = 2;
+			XyTargetPosition = (Y_Index-1) * 3 + X_Index;
+			XyTarget_X = (X_Index - 2) * rectangleSize;
+			XyTarget_Y = -(Y_Index - 2) * rectangleSize;
+
+			//获取delta目标值
+			P1[0] = m_Pos_Y-XyTarget_Y;
+			P1[1] = -(m_Pos_X - XyTarget_X);
+			P1[2] = m_Pos_Z - 247.0;
+
+			//获取XY平台的指令数据
+			if (XyTarget_X > pos[0]) XyData = 4;
+			else if (XyTarget_X == pos[0]) XyData = 0;
+			else XyData = 8;
+
+			if (XyTarget_Y > pos[1]) XyData += 128;
+			else if (XyTarget_Y == pos[1]) XyData += 0;
+			else XyData += 64;
+
+			pXYPlatform->moveXyPlatform(XyData);
+		}
+	}
+	else
+	{
+		return;
+	}
 
 	P0[0] = tranp0[0];
 	P0[1] = tranp0[1];
@@ -428,6 +466,7 @@ void CDELTA_ControllerDlg::OnBnClickedBtautozero()
 	P0[2] = tranp0[2];
 
 	/*flag = m_gtsmotion.Pvt_CompleteLoop(P0,P1,m_Int,1);*/
+	pXYPlatform->moveAutoZero();
 	flag = m_gtsmotion.Pvt_DynamicPT(P0,P1,1,velrate);
 
 	if (flag == 0)
@@ -542,5 +581,16 @@ void CDELTA_ControllerDlg::OnEnChangeEteditpositionX()
 void CDELTA_ControllerDlg::OnXyplateformMonitor()
 {
 	// TODO:  在此添加命令处理程序代码
+	pXYPlatform->ShowWindow(SW_SHOWNORMAL);
+}
+
+void CDELTA_ControllerDlg::getXyPosition(double* pos)
+{
+
+}
+
+void CDELTA_ControllerDlg::OnBnClickedXyshowbtn()
+{
+	// TODO:  在此添加控件通知处理程序代码
 	pXYPlatform->ShowWindow(SW_SHOWNORMAL);
 }

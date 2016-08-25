@@ -5,7 +5,7 @@
 #include "DELTA_CONTROLLER.h"
 #include "XYPlatform.h"
 #include "afxdialogex.h"
-
+#include "Robot.h"
 
 // CXYPlatform 对话框
 
@@ -67,14 +67,23 @@ void CXYPlatform::OnClickedBtnOpen()
 		m_mscomm.put_InBufferCount(0);//设置和返回接收缓冲区的字节数，设为0时清空接收缓冲区
 		m_mscomm.put_OutBufferCount(0);//设置和返回发送缓冲区的字节数，设为0时清空发送缓冲区
 		m_mscomm.put_PortOpen(TRUE);//打开串口
+		CString strtemp;
+		LoopTest(&strtemp);
 		if (m_mscomm.get_PortOpen())
 		{
-			SetTimer(1, 300, NULL);
+			if (strtemp != "06" || strtemp != "15")
+			{
+			str = _T("关闭串口");
+			UpdateData(true);
+			h_BtnOpen->SetWindowTextW(str);//改变按钮名称为“关闭串口”
+			return;
+			}
 			timerInit = true;
 			str = _T("关闭串口");
 			UpdateData(true);
 			h_BtnOpen->SetWindowTextW(str);//改变按钮名称为“关闭串口”
 			StateShow(_T(">>>串口打开成功！"));
+			SetTimer(1, 300, NULL);
 		}
 	}
 	else
@@ -101,31 +110,8 @@ void CXYPlatform::OnClickedBtnStop()
 void CXYPlatform::OnClickedBtnLoop()
 {
 	// TODO:  在此添加控件通知处理程序代码
-	CString strSend;
-	CByteArray hexData, sendData;
-	m_mscomm.put_InBufferCount(0);//设置和返回接收缓冲区的字节数，设为0时清空缓冲区
-	m_mscomm.put_OutBufferCount(0);//设置和返回发送缓冲区的字节数，设为0时清空缓冲区
-	BYTE commStr;
-	commStr = 0x05;
-	sendData.Add(commStr);
-	m_mscomm.put_Output(COleVariant(sendData));//发送
-	Sleep(100);
-
-	BYTE rxData[512];//设置BYTE数组
-	CString strtemp;
-	long k, len;
-	getReturn(rxData, &len);
-	for (k = 0; k < len; k++)//将数组转换为CString型变量
-	{
-		BYTE bt = *(char*)(rxData);//字符型
-		strtemp.Format(_T("%02X"), bt);
-	}
-	if (strtemp == "06")//响应请求
-		MessageBox(_T("与PLC通讯正常!", "与PLC通讯检测"));
-	else if (strtemp == "15")//响应错误
-		MessageBox(_T("与PLC通讯不正常!", "与PLC通讯检测"));
-	else
-		MessageBox(_T("与PLC没有连接!", "提示"));
+	CString str;
+	LoopTest(&str);
 }
 
 
@@ -145,7 +131,7 @@ void CXYPlatform::OnClickedBtnXlz()
 }
 
 
-void CXYPlatform::OnClickedBtnYrz()
+void CXYPlatform::OnClickedBtnYrz()//电机运行的正方向与坐标轴正向相反
 {
 	// TODO:  在此添加控件通知处理程序代码
 	int address = 256, byteNum = 2, data = 16;
@@ -469,40 +455,81 @@ void CXYPlatform::StateShow(CString str)
 	m_StateInform.SetWindowTextW(m_XyState);
 }
 
-void CXYPlatform::getXyState(int* state)
+void CXYPlatform::getXyState(int* state, double* pos)
 {
 		*state = 0;
-	if (mFlag16[0] == '1'&&mFlag16[2] == '1')//平台在位置1
+	if (mFlag16[0] == '1' && mFlag16[2] == '1')//平台在位置1
+	{
 		*state = 1;
+		*pos = -rectangleSize;
+		*(pos + 1) = rectangleSize;
+	}
 	if (mFlag16[2] == '1'&&strFlag[4] == '1')
+	{
 		*state = 2;
+		*pos = 0;
+		*(pos + 1) = rectangleSize;
+	}
 	if (mFlag16[1] == '1'&&mFlag16[2] == '1')
+	{
 		*state = 3;
+		*pos = rectangleSize;
+		*(pos + 1) = rectangleSize;
+	}
 	if (mFlag16[0] == '1'&&strFlag[1] == '1')
+	{
 		*state = 4;
+		*pos = -rectangleSize;
+		*(pos + 1) = 0;
+	}
 	if (strFlag[4] == '1'&&strFlag[1] == '1')
+	{
 		*state = 5;
+		*pos = 0;
+		*(pos + 1) = 0;
+	}
 	if (strFlag[1] == '1'&&mFlag16[1] == '1')
+	{
 		*state = 6;
+		*pos = rectangleSize;
+		*(pos + 1) = 0;
+	}
 	if (mFlag16[0] == '1'&&mFlag16[3] == '1')
+	{
 		*state = 7;
+		*pos = -rectangleSize;
+		*(pos + 1) = -rectangleSize;
+	}
 	if (strFlag[4] == '1'&&mFlag16[3] == '1')
+	{
 		*state = 8;
+		*pos = 0;
+		*(pos + 1) = -rectangleSize;
+	}
 	if (mFlag16[3] == '1'&&mFlag16[3] == '1')
+	{
 		*state = 9;
+		*pos = rectangleSize;
+		*(pos + 1) = -rectangleSize;
+	}
 	if (strFlag[0] == '1' || strFlag[2] == '1' || strFlag[3] == '1' || strFlag[5] == '1')
+	{
 		*state = 10;
+		*pos = 220;
+		*(pos + 1) = 220;
+	}
 }
 
 void CXYPlatform::moveAutoZero()
 {
 	int stateFlag = 0, loopNum = 0;
+	double xyPos[2];
 	if (m_mscomm.get_PortOpen())
 	{
 		do
 		{
 			Sleep(1000);
-			getXyState(&stateFlag);
+			getXyState(&stateFlag, xyPos);
 			loopNum++;
 		} while (stateFlag != 0 || loopNum < 10);
 	}
@@ -561,4 +588,41 @@ BOOL CXYPlatform::serialPortState()
 		return TRUE;
 	else
 		return FALSE;
+}
+
+void CXYPlatform::LoopTest(CString* str)
+{
+	CString strSend;
+	CByteArray hexData, sendData;
+	m_mscomm.put_InBufferCount(0);//设置和返回接收缓冲区的字节数，设为0时清空缓冲区
+	m_mscomm.put_OutBufferCount(0);//设置和返回发送缓冲区的字节数，设为0时清空缓冲区
+	BYTE commStr;
+	commStr = 0x05;
+	sendData.Add(commStr);
+	m_mscomm.put_Output(COleVariant(sendData));//发送
+	Sleep(100);
+
+	BYTE rxData[512];//设置BYTE数组
+	CString strtemp;
+	long k, len;
+	getReturn(rxData, &len);
+	for (k = 0; k < len; k++)//将数组转换为CString型变量
+	{
+		BYTE bt = *(char*)(rxData);//字符型
+		strtemp.Format(_T("%02X"), bt);
+	}
+	if (strtemp == "06")//响应请求
+		MessageBox(_T("与PLC通讯正常!", "与PLC通讯检测"));
+	else if (strtemp == "15")//响应错误
+		MessageBox(_T("与PLC通讯不正常!", "与PLC通讯检测"));
+	else
+		MessageBox(_T("与PLC没有连接，请检查PLC是否上电！", "提示"));
+
+	*str = strtemp;
+}
+
+void CXYPlatform::moveXyPlatform(int data)
+{
+	int address = 256, byteNum = 2;
+	sendCommand(WRITE, address, byteNum, data);
 }

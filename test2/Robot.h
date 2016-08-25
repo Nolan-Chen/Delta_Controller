@@ -52,3 +52,6 @@
 /////////////////////////////////////正解参数
 #define SIDELENGTH_FIXED  160*3.4641016   //sidelength of the fix/end platform triangle,
 #define SIDELENGTH_END    50*3.4641016 	 //not the centre-privot distance
+
+/////////////////////////////////////XY平台参数
+#define rectangleSize 200.0000   //XY平台格子边长

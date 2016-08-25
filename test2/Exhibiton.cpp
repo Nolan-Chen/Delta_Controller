@@ -15,17 +15,17 @@ CExhibiton::CExhibiton(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CExhibiton::IDD, pParent)
 	, m_RunTime_Loop(0)
 {
-	m_Point1_X = 175.0;
-	m_Point1_Y = 175.0;
+	m_Point1_X = 125.0;
+	m_Point1_Y = 125.0;
 	m_Point1_Z = 400.0;
-	m_Point2_X = -175.0;
-	m_Point2_Y = 175.0;
+	m_Point2_X = -125.0;
+	m_Point2_Y = 125.0;
 	m_Point2_Z = 400.0;
-	m_Point3_X = -175.0;
-	m_Point3_Y = -175.0;
+	m_Point3_X = -125.0;
+	m_Point3_Y = -125.0;
 	m_Point3_Z = 400.0;
-	m_Point4_X = 175.0;
-	m_Point4_Y = -175.0;
+	m_Point4_X = 125.0;
+	m_Point4_Y = -125.0;
 	m_Point4_Z = 400.0;
 	m_LoopTimes = 1;
 	m_looptimes_al = 0;
