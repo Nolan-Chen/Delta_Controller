@@ -1,6 +1,6 @@
 #pragma once
 #include "GtsMotion.h"
-//#include "DELTA_ControllerDlg.h"
+#include "XYPlatform.h"
 
 // CExhibiton dialog
 
@@ -38,11 +38,13 @@ public:
 	double m_Point4_Y;
 	double m_Point4_Z;
 	ULONGLONG m_LoopTimes;
-	//CDELTA_ControllerDlg m_deltacontrollerDlg;
 	void threadExhibitionRobotAction();
-
+	//CXYPlatform m_XyPlatform;
 	GtsMotion gtsmotion;
-	ULONGLONG m_looptimes_al;
+//	ULONGLONG m_looptimes_al;
 	double m_RunTime_Loop;
 	afx_msg void OnEnChangelooptimes();
+	virtual BOOL OnInitDialog();
+	afx_msg void OnBnClickedBtnOnetime();
+	int m_LineType;
 };
