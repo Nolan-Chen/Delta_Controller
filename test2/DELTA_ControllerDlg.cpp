@@ -17,6 +17,7 @@
 bool SimulationCheck;	//仿真选择项外部传递
 bool OnMotion;		//运动开关外部传递
 int m_Int;   //速度条读取值
+CXYPlatform* pXYPlatform;
 
 /////////////////////////VISION
 
@@ -83,18 +84,18 @@ CDELTA_ControllerDlg::CDELTA_ControllerDlg(CWnd* pParent /*=NULL*/)
 
 	//指针初始化
 	pXYPlatform = new CXYPlatform();
-	pES = NULL;
+	pES = new CExhibiton();   //给指针分配内存
 	pCT = NULL;
 	pMonitor = NULL;
 }
 
 CDELTA_ControllerDlg::~CDELTA_ControllerDlg()
 {
-	if(pES) 
+	if(pES != NULL) 
 		delete pES;
-	if(pCT) 
+	if (pCT != NULL)
 		delete pCT;
-	if (pXYPlatform)
+	if (pXYPlatform != NULL)
 		delete pXYPlatform;
 }
 
@@ -189,10 +190,6 @@ BOOL CDELTA_ControllerDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 
-	//初始化指针变量
-	pES = NULL;
-	pCT = NULL;
-
 	//设置速度滑条的初始状态
 	OnMotion = TRUE;
 	m_sliderVel.SetRange(2, 100);
@@ -229,6 +226,7 @@ BOOL CDELTA_ControllerDlg::OnInitDialog()
 	}
 
 	pXYPlatform->Create(IDD_XYDELTADLG);
+	pES->Create(IDD_Exhibition_Show); //创建一个非模态对话框
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -309,9 +307,6 @@ void CDELTA_ControllerDlg::OnExhibition()
 {
 	// TODO: Add your command handler code here
 	//采用成员变量创建一个非模态对话框
-	if(pES)delete pES;
-	pES = new CExhibiton();   //给指针分配内存
-	pES->Create(IDD_Exhibition_Show); //创建一个非模态对话框
 	pES->ShowWindow(SW_SHOWNORMAL);  //显示非模态对话框
 }
 
@@ -362,8 +357,8 @@ void CDELTA_ControllerDlg::OnBnClickedBthandzero()
 	UpdateData(TRUE);
 
 	//将起点、终点初始化为零点
-	P1[0] = P0[0] = ovalue[0] = m_Zero_X;
-	P1[1] = P0[1] = ovalue[1] = m_Zero_Y;
+	P1[0] = P0[0] = ovalue[0] = m_Zero_Y;
+	P1[1] = P0[1] = ovalue[1] = m_Zero_X;
 	P1[2] = P0[2] = ovalue[2] = m_Zero_Z-247;
 
 	zeroflag = zerokine.IKine(ovalue,zeroposAng);
@@ -372,15 +367,17 @@ void CDELTA_ControllerDlg::OnBnClickedBthandzero()
 void CDELTA_ControllerDlg::OnBnClickedButton2()
 {
 	// TODO: 在此添加控件通知处理程序代码
+	short int velrate;
 	UpdateData(TRUE);         //刷新对话框，获取坐标点值
-	if (m_Pos_X<-(rectangleSize + 100) || m_Pos_X>(rectangleSize + 100))
+	velrate = m_sliderVel.GetPos();
+	if (m_Pos_X<-(RECTANGLESIZE_X + 150) || m_Pos_X>(RECTANGLESIZE_X + 150))
 	{
-		MessageBox(_T("请输入X范围（-300至300)"));
+		MessageBox(_T("请输入X范围（-315至315)"));
 		return;
 	}
-	if (m_Pos_Y<-(rectangleSize + 100) || m_Pos_Y>(rectangleSize + 100))
+	if (m_Pos_Y<-(RECTANGLESIZE_Y + 150) || m_Pos_Y>(RECTANGLESIZE_Y + 150))
 	{
-		MessageBox(_T("请输入Y范围（-300至300)"));
+		MessageBox(_T("请输入Y范围（-370至370)"));
 		return;
 	}
 	if (m_Pos_Z<547 || m_Pos_Z>747)
@@ -388,15 +385,19 @@ void CDELTA_ControllerDlg::OnBnClickedButton2()
 		MessageBox(_T("请输入Z范围（547至747)"));
 		return;
 	}
+	if (velrate > 85)
+	{
+		MessageBox(_T("速度不要超过85%"));
+		return;
+	}
+
 	AfxBeginThread(_threadRobotActionTest, (void*)this);
 }
 
 UINT __cdecl CDELTA_ControllerDlg::_threadRobotActionTest(LPVOID pParam)
 {
 	CDELTA_ControllerDlg *deltaAction = (CDELTA_ControllerDlg*)pParam;
-
 	deltaAction->threadRobotAction();
-	//UpdateData(FALSE);
 	return 0;
 }
 
@@ -418,9 +419,12 @@ void CDELTA_ControllerDlg::threadRobotAction()
 	XySchemeFlag = pXYPlatform->actionScheme(targetPos, P1);
 	if (XySchemeFlag == false)
 	{
-		MessageBox(_T("XY平台运动中！"));
+		MessageBox(_T("1、XY平台运动中！2、XY平台串口未打开！"));
 		return;
 	}
+	//pXYPlatform->motorAction();
+	//Sleep(500);
+	//pXYPlatform->actionScheme(targetPos, P1);
 
 	P0[0] = tranp0[0];
 	P0[1] = tranp0[1];
@@ -449,6 +453,11 @@ void CDELTA_ControllerDlg::OnBnClickedBtautozero()
 	m_gtsmotion.GetCurPos(tranp0);  //得到当前坐标值
 	velrate = m_sliderVel.GetPos();
 
+	if (velrate > 85)
+	{
+		MessageBox(_T("速度不要超过85%"));
+		return;
+	}
 	//获取目标值
 	P1[0] = ovalue[0];
 	P1[1] = ovalue[1];
@@ -459,7 +468,7 @@ void CDELTA_ControllerDlg::OnBnClickedBtautozero()
 	P0[2] = tranp0[2];
 
 	/*flag = m_gtsmotion.Pvt_CompleteLoop(P0,P1,m_Int,1);*/
-	pXYPlatform->moveAutoZero();
+	//pXYPlatform->moveAutoZero();
 	flag = m_gtsmotion.Pvt_DynamicPT(P0,P1,1,velrate);
 
 	if (flag == 0)
@@ -531,12 +540,13 @@ void CDELTA_ControllerDlg::OnBnClickedBtstopoff()
 void CDELTA_ControllerDlg::OnClose()
 {
 	// TODO: Add your message handler code here and/or call default
-	int index = m_pResultList->InsertString(-1, _T(">>正在关闭XY平台"));
-	pXYPlatform->moveAutoZero();
-	if (pXYPlatform->serialPortState())
-		pXYPlatform->OnClickedBtnStop();
-	index = m_pResultList->InsertString(-1, _T(">>DELTA平台回零中"));
+	/*int index = m_pResultList->InsertString(-1, _T(">>正在关闭XY平台"));
+	pXYPlatform->moveAutoZero();*/
+	/*if (pXYPlatform->serialPortState())
+		pXYPlatform->OnClickedBtnStop();*/
+	//int index = m_pResultList->InsertString(-1, _T(">>DELTA平台回零中"));
 	OnBnClickedBtautozero();
+	m_gtsmotion.WaitMotor();
 	m_gtsmotion.Ena_Stop('C');
 	CDialogEx::OnClose();
 }

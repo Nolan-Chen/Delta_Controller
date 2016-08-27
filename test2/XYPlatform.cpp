@@ -69,22 +69,26 @@ void CXYPlatform::OnClickedBtnOpen()
 		m_mscomm.put_OutBufferCount(0);//设置和返回发送缓冲区的字节数，设为0时清空发送缓冲区
 		m_mscomm.put_PortOpen(TRUE);//打开串口
 		CString strtemp;
-		LoopTest(&strtemp);
+		LoopTest(strtemp);
+		//strtemp="27";
 		if (m_mscomm.get_PortOpen())
 		{
-			if (strtemp != "06" || strtemp != "15")
+			if (strtemp == "06" || strtemp == "15")
 			{
-			str = _T("关闭串口");
-			UpdateData(true);
-			h_BtnOpen->SetWindowTextW(str);//改变按钮名称为“关闭串口”
-			return;
+				timerInit = true;
+				str = _T("关闭串口");
+				UpdateData(true);
+				h_BtnOpen->SetWindowTextW(str);//改变按钮名称为“关闭串口”
+				StateShow(_T(">>>串口打开成功！"));
+				SetTimer(1, 300, NULL);
+				return;
 			}
-			timerInit = true;
 			str = _T("关闭串口");
 			UpdateData(true);
 			h_BtnOpen->SetWindowTextW(str);//改变按钮名称为“关闭串口”
-			StateShow(_T(">>>串口打开成功！"));
-			SetTimer(1, 300, NULL);
+			StateShow(_T(">>>串口打开状态不正常，请关闭后再打开！"));
+			MessageBox(_T("串口打开状态不正常，请关闭后再打开！"));
+			return;
 		}
 	}
 	else
@@ -112,7 +116,7 @@ void CXYPlatform::OnClickedBtnLoop()
 {
 	// TODO:  在此添加控件通知处理程序代码
 	CString str;
-	LoopTest(&str);
+	LoopTest(str);
 }
 
 
@@ -160,7 +164,7 @@ BOOL CXYPlatform::OnInitDialog()
 		str.Format(_T("com %d"), i + 1);
 		m_SerialPort.InsertString(i, str);
 	}
-	m_SerialPort.SetCurSel(2);
+	m_SerialPort.SetCurSel(0);
 
 	//m_XyState.
 	m_StateInform.SetReadOnly(TRUE);
@@ -174,140 +178,80 @@ void CXYPlatform::OnTimer(UINT_PTR nIDEvent)//周期性检测输入端口状态
 {
 	// TODO:  在此添加消息处理程序代码和/或调用默认值
 	UpdateData(true);
+	CString strtemp;
 	static bool flag[6] = { 0 };
-	int m_addressH, byteNum;
-	LONG len, k;
-	BYTE rxdata[512];//设置BYTE数组
-	CString strtemp, str;
-	for (int i = 0; i<3; i++)
-	{
-		switch (i)
-		{
-		case 0:
-			m_addressH = 0x80;//输入端口X0~X7起始地址十六进制表示
-			byteNum = 1;
-			break;
-		case 1:
-			m_addressH = 0x100;//中间继电器M0~M7起始地址十六进制表示
-			byteNum = 1;
-			break;
-		case 2:
-			m_addressH = 0x102;//中间继电器M16~M23起始地址十六进制表示
-			byteNum = 1;
-			break;
-		}
-
-		sendCommand(READ, m_addressH, byteNum, NULL);
-		getReturn(rxdata, &len);//获取接收缓冲区的返回值
-
-		for (k = 0; k < len; k++)//将数组转换为CString型变量
-		{
-			BYTE bt = *(char*)(rxdata);//字符型
-			strtemp.Format(_T("%02X"), bt);
-		}
-		if (strtemp == "06")//响应请求
-			break;
-			//MessageBox(_T("与PLC通讯正常!", "与PLC通讯检测"));
-
-		for (k = 2; k>1; k -= 2)//读取的字节数为2
-		{
-			BYTE temp = *(char*)(rxdata + k);
-			BYTE bt1 = ((temp - 0x30)<10) ? (temp - 0x30) : (temp - 0x41 + 10);
-			temp = *(char*)(rxdata + k - 1);
-			BYTE bt2 = ((temp - 0x30)<10) ? (temp - 0x30) : (temp - 0x41 + 10);
-			BYTE bt = bt1 + bt2 * 16;
-			char p[10];
-			strtemp = itoa(bt, p, 2);
-			str.Format(_T("%08s,"), strtemp);
-		}
-
-		switch (i)
-		{
-		case 0:
-			for (int i = 0, j = 7; i < 8; i++, j--)
-				strFlag[j] = str[i];
-			break;
-		case 1:
-			for (int i = 0, j = 7; i < 8; i++, j--)
-				mFlag0[j] = str[i];
-			break;
-		case 2:
-			for (int i = 0, j = 7; i < 8; i++, j--)
-				mFlag16[j] = str[i];
-			break;
-		}
-	}
+	readState(strtemp);
 	
 	if (timerInit == false && strtemp != "06" && strtemp != "15")
 	{
 		if (strFlag[0] == '1' && flag[0] == false)//Y轴左限位状态显示
 		{
+			flag[0] = true;
 			StateShow(_T(">>>Y轴到达左限位！"));
 			MessageBox(_T("Y轴到达左限位！"));
-			flag[0] = true;
 		}
 		else if (strFlag[0] == '0'&&flag[0] == true)
 		{
-			StateShow(_T(">>>Y轴离开左限位..."));
 			flag[0] = false;
+			StateShow(_T(">>>Y轴离开左限位..."));
 		}
 
 		if (strFlag[2] == '1' && flag[2] == false)//Y轴右限位状态显示
 		{
+			flag[2] = true;
 			StateShow(_T(">>>Y轴到达右限位！"));
 			MessageBox(_T("Y轴到达右限位！"));
-			flag[2] = true;
 		}
 		else if (strFlag[2] == '0'&&flag[2] == true)
 		{
-			StateShow(_T(">>>Y轴离开右限位..."));
 			flag[2] = false;
+			StateShow(_T(">>>Y轴离开右限位..."));
 		}
 
 		if (strFlag[1] == '1' && flag[1] == false)//Y轴零位状态显示
 		{
-			StateShow(_T(">>>Y轴回到零位！"));
 			flag[1] = true;
+			StateShow(_T(">>>Y轴回到零位！"));
 		}
 		else if (strFlag[1] == '0'&&flag[1] == true)
 		{
-			StateShow(_T(">>>Y轴离开零位..."));
 			flag[1] = false;
+			StateShow(_T(">>>Y轴离开零位..."));
 		}
 
 		if (strFlag[3] == '1' && flag[3] == false)//X轴左限位状态显示
 		{
+			flag[3] = true;
 			StateShow(_T(">>>X轴到达左限位！"));
 			MessageBox(_T("X轴到达左限位！"));
-			flag[3] = true;
 		}
 		else if (strFlag[3] == '0'&&flag[3] == true)
 		{
-			StateShow(_T(">>>X轴离开左限位..."));
 			flag[3] = false;
+			StateShow(_T(">>>X轴离开左限位..."));
 		}
 
 		if (strFlag[5] == '1' && flag[5] == false)//X轴右限位状态显示
 		{
+			flag[5] = true;
 			StateShow(_T(">>>X轴到达右限位！"));
 			MessageBox(_T("X轴到达右限位！"));
-			flag[5] = true;
 		}
 		else if (strFlag[5] == '0'&&flag[5] == true)
 		{
-			StateShow(_T(">>>X轴离开右限位..."));
 			flag[5] = false;
+			StateShow(_T(">>>X轴离开右限位..."));
 		}
 
 		if (strFlag[4] == '1' && flag[4] == false)//X轴零位状态显示
 		{
-			StateShow(_T(">>>X轴回到零位！"));
 			flag[4] = true;
+			StateShow(_T(">>>X轴回到零位！"));
 		}
 		else if (strFlag[4] == '0'&&flag[4] == true)
 		{
-			StateShow(_T(">>>X轴离开零位..."));
 			flag[4] = false;
+			StateShow(_T(">>>X轴离开零位..."));
 		}
 	}
 	else if (strtemp == "15")
@@ -366,7 +310,7 @@ void CXYPlatform::getSumChk(BYTE *datades, BYTE *datascr, int len)//计算校验码
 
 void CXYPlatform::sendCommand(const short index, int address, int byteNum, int data)
 {
-	UpdateData(true);
+	//UpdateData(true);
 	CByteArray send_data;
 	switch (index)
 	{
@@ -431,7 +375,6 @@ void CXYPlatform::moveYRf()
 void CXYPlatform::OnClose()
 {
 	// TODO:  在此添加消息处理程序代码和/或调用默认值
-	
 	CDialogEx::OnClose();
 }
 
@@ -456,69 +399,135 @@ void CXYPlatform::StateShow(CString str)
 	m_StateInform.SetWindowTextW(m_XyState);
 }
 
+void CXYPlatform::readState(CString& strtemp)
+{
+	int m_addressH, byteNum;
+	LONG len, k;
+	BYTE rxdata[512];//设置BYTE数组
+	CString str;
+	for (int i = 0; i<3; i++)
+	{
+		switch (i)
+		{
+		case 0:
+			m_addressH = 0x80;//输入端口X0~X7起始地址十六进制表示
+			byteNum = 1;
+			break;
+		case 1:
+			m_addressH = 0x100;//中间继电器M0~M7起始地址十六进制表示
+			byteNum = 1;
+			break;
+		case 2:
+			m_addressH = 0x102;//中间继电器M16~M23起始地址十六进制表示
+			byteNum = 1;
+			break;
+		}
+
+		sendCommand(READ, m_addressH, byteNum, NULL);
+		getReturn(rxdata, &len);//获取接收缓冲区的返回值
+
+		for (k = 0; k < len; k++)//将数组转换为CString型变量
+		{
+			BYTE bt = *(char*)(rxdata);//字符型
+			strtemp.Format(_T("%02X"), bt);
+		}
+		if (strtemp == "06")//响应请求
+			break;
+		//MessageBox(_T("与PLC通讯正常!", "与PLC通讯检测"));
+
+		for (k = 2; k>1; k -= 2)//读取的字节数为2
+		{
+			BYTE temp = *(char*)(rxdata + k);
+			BYTE bt1 = ((temp - 0x30)<10) ? (temp - 0x30) : (temp - 0x41 + 10);
+			temp = *(char*)(rxdata + k - 1);
+			BYTE bt2 = ((temp - 0x30)<10) ? (temp - 0x30) : (temp - 0x41 + 10);
+			BYTE bt = bt1 + bt2 * 16;
+			char p[10];
+			strtemp = itoa(bt, p, 2);
+			str.Format(_T("%08s,"), strtemp);
+		}
+
+		switch (i)
+		{
+		case 0:
+			for (int i = 0, j = 7; i < 8; i++, j--)
+				strFlag[j] = str[i];
+			break;
+		case 1:
+			for (int i = 0, j = 7; i < 8; i++, j--)
+				mFlag0[j] = str[i];
+			break;
+		case 2:
+			for (int i = 0, j = 7; i < 8; i++, j--)
+				mFlag16[j] = str[i];
+			break;
+		}
+	}
+}
+
 void CXYPlatform::getXyState(int* state, double* pos)
 {
 		*state = 0;
-	if (mFlag16[0] == '1' && mFlag16[2] == '1')//平台在位置1
-	{
-		*state = 1;
-		*pos = -rectangleSize;
-		*(pos + 1) = rectangleSize;
-	}
-	if (mFlag16[2] == '1'&&strFlag[4] == '1')
-	{
-		*state = 2;
-		*pos = 0;
-		*(pos + 1) = rectangleSize;
-	}
-	if (mFlag16[1] == '1'&&mFlag16[2] == '1')
-	{
-		*state = 3;
-		*pos = rectangleSize;
-		*(pos + 1) = rectangleSize;
-	}
-	if (mFlag16[0] == '1'&&strFlag[1] == '1')
-	{
-		*state = 4;
-		*pos = -rectangleSize;
-		*(pos + 1) = 0;
-	}
-	if (strFlag[4] == '1'&&strFlag[1] == '1')
-	{
-		*state = 5;
-		*pos = 0;
-		*(pos + 1) = 0;
-	}
-	if (strFlag[1] == '1'&&mFlag16[1] == '1')
-	{
-		*state = 6;
-		*pos = rectangleSize;
-		*(pos + 1) = 0;
-	}
-	if (mFlag16[0] == '1'&&mFlag16[3] == '1')
-	{
-		*state = 7;
-		*pos = -rectangleSize;
-		*(pos + 1) = -rectangleSize;
-	}
-	if (strFlag[4] == '1'&&mFlag16[3] == '1')
-	{
-		*state = 8;
-		*pos = 0;
-		*(pos + 1) = -rectangleSize;
-	}
-	if (mFlag16[3] == '1'&&mFlag16[3] == '1')
-	{
-		*state = 9;
-		*pos = rectangleSize;
-		*(pos + 1) = -rectangleSize;
-	}
-	if (strFlag[0] == '1' || strFlag[2] == '1' || strFlag[3] == '1' || strFlag[5] == '1')
-	{
-		*state = 10;
-		*pos = 220;
-		*(pos + 1) = 220;
-	}
+		if (mFlag16[0] == '1' && mFlag16[2] == '1')//平台在位置1
+		{
+			*state = 1;
+			*pos = -RECTANGLESIZE_X;
+			*(pos + 1) = RECTANGLESIZE_Y;
+		}
+		if (mFlag16[2] == '1'&&strFlag[4] == '1')
+		{
+			*state = 2;
+			*pos = 0;
+			*(pos + 1) = RECTANGLESIZE_Y;
+		}
+		if (mFlag16[1] == '1'&&mFlag16[2] == '1')
+		{
+			*state = 3;
+			*pos = RECTANGLESIZE_X;
+			*(pos + 1) = RECTANGLESIZE_Y;
+		}
+		if (mFlag16[0] == '1'&&strFlag[1] == '1')
+		{
+			*state = 4;
+			*pos = -RECTANGLESIZE_X;
+			*(pos + 1) = 0;
+		}
+		if (strFlag[4] == '1'&&strFlag[1] == '1')
+		{
+			*state = 5;
+			*pos = 0;
+			*(pos + 1) = 0;
+		}
+		if (strFlag[1] == '1'&&mFlag16[1] == '1')
+		{
+			*state = 6;
+			*pos = RECTANGLESIZE_X;
+			*(pos + 1) = 0;
+		}
+		if (mFlag16[0] == '1'&&mFlag16[3] == '1')
+		{
+			*state = 7;
+			*pos = -RECTANGLESIZE_X;
+			*(pos + 1) = -RECTANGLESIZE_Y;
+		}
+		if (strFlag[4] == '1'&&mFlag16[3] == '1')
+		{
+			*state = 8;
+			*pos = 0;
+			*(pos + 1) = -RECTANGLESIZE_Y;
+		}
+		if (mFlag16[1] == '1' && mFlag16[3] == '1')
+		{
+			*state = 9;
+			*pos = RECTANGLESIZE_X;
+			*(pos + 1) = -RECTANGLESIZE_Y;
+		}
+		if (strFlag[0] == '1' || strFlag[2] == '1' || strFlag[3] == '1' || strFlag[5] == '1')
+		{
+			*state = 10;
+			*pos = 220;
+			*(pos + 1) = 220;
+		}
 }
 
 void CXYPlatform::moveAutoZero()
@@ -591,7 +600,7 @@ BOOL CXYPlatform::serialPortState()
 		return FALSE;
 }
 
-void CXYPlatform::LoopTest(CString* str)
+void CXYPlatform::LoopTest(CString& str)
 {
 	CString strSend;
 	CByteArray hexData, sendData;
@@ -615,16 +624,18 @@ void CXYPlatform::LoopTest(CString* str)
 	if (strtemp == "06")//响应请求
 		MessageBox(_T("与PLC通讯正常!", "与PLC通讯检测"));
 	else if (strtemp == "15")//响应错误
-		MessageBox(_T("与PLC通讯不正常!", "与PLC通讯检测"));
+		MessageBox(_T("与PLC通讯不正常，请点击回路测试！", "与PLC通讯检测"));
 	else
-		MessageBox(_T("与PLC没有连接，请检查PLC是否上电！", "提示"));
+		MessageBox(_T("与PLC没有连接，请检查1、PLC是否上电 2、PC与PLC通信是否有问题！", "提示"));
 
-	*str = strtemp;
+	str = strtemp;
 }
 
 void CXYPlatform::moveXyPlatform(int data)
 {
 	int address = 256, byteNum = 2;
+	/*OnClickedBtnStop();
+	Sleep(100);*/
 	sendCommand(WRITE, address, byteNum, data);
 }
 
@@ -640,26 +651,26 @@ bool CXYPlatform::actionScheme(double* targetPos, double* deltaTarget)
 		if (distance <= 150)
 		{
 			//获取delta目标值
-			*(deltaTarget+0) = *(targetPos + 1);
-			*(deltaTarget + 1) = -(*(targetPos + 0));
+			*(deltaTarget+0) = *(targetPos + 1) - pos[1];
+			*(deltaTarget + 1) = *(targetPos + 0) - pos[0];
 			*(deltaTarget + 2) = *(targetPos + 2) - 247.0;
 		}
 		else
 		{
 			int X_Index = 0, Y_Index = 0;
-			if (*(targetPos + 0) < -(rectangleSize / 2)) X_Index = 1;
-			else if (*(targetPos + 0)>(rectangleSize / 2)) X_Index = 3;
+			if (*(targetPos + 0) < -(RECTANGLESIZE_X / 2)) X_Index = 1;    //目标位置在那个格子里
+			else if (*(targetPos + 0)>(RECTANGLESIZE_X / 2)) X_Index = 3;
 			else X_Index = 2;
-			if (*(targetPos + 1) > (rectangleSize / 2)) Y_Index = 1;
-			else if (*(targetPos + 1) < -(rectangleSize / 2)) Y_Index = 3;
+			if (*(targetPos + 1) > (RECTANGLESIZE_Y / 2)) Y_Index = 1;
+			else if (*(targetPos + 1) < -(RECTANGLESIZE_Y / 2)) Y_Index = 3;
 			else Y_Index = 2;
-			XyTargetPosition = (Y_Index - 1) * 3 + X_Index;
-			XyTarget_X = (X_Index - 2) * rectangleSize;
-			XyTarget_Y = -(Y_Index - 2) * rectangleSize;
+			//XyTargetPosition = (Y_Index - 1) * 3 + X_Index;
+			XyTarget_X = (X_Index - 2) * RECTANGLESIZE_X;
+			XyTarget_Y = -(Y_Index - 2) * RECTANGLESIZE_Y;
 
 			//获取delta目标值
 			*(deltaTarget + 0) = *(targetPos + 1) - XyTarget_Y;
-			*(deltaTarget + 1) = -(*(targetPos + 0) - XyTarget_X);
+			*(deltaTarget + 1) = *(targetPos + 0) - XyTarget_X;
 			*(deltaTarget + 2) = *(targetPos + 2) - 247.0;
 
 			//获取XY平台的指令数据
@@ -667,45 +678,31 @@ bool CXYPlatform::actionScheme(double* targetPos, double* deltaTarget)
 			else if (XyTarget_X == pos[0]) XyData = 0;
 			else XyData = 8;
 
+			if (XyTarget_X*pos[0]<0) XyData += 256;//M8标志位，X轴是否跨越零位
+			else XyData += 0;
+
 			if (XyTarget_Y > pos[1]) XyData += 128;
 			else if (XyTarget_Y == pos[1]) XyData += 0;
 			else XyData += 64;
 
+			if (XyTarget_Y*pos[1]<0) XyData += 512;//M9标志位，Y轴是否跨越零位
+			else XyData += 0;
+
 			moveXyPlatform(XyData);
-
-			do
-			{
-				getXyState(&XyCurrentPosition, pos);
-				if (XyCurrentPosition != 0)
-				{
-					if (pos[0] == XyTarget_X && pos[1] == XyTarget_Y)
-						break;
-					else
-					{
-						//获取XY平台的指令数据
-						if (XyTarget_X > pos[0]) XyData = 4;
-						else if (XyTarget_X == pos[0]) XyData = 0;
-						else XyData = 8;
-
-						if (XyTarget_Y > pos[1]) XyData += 128;
-						else if (XyTarget_Y == pos[1]) XyData += 0;
-						else XyData += 64;
-
-						moveXyPlatform(XyData);
-					}
-				}
-			} while (XyCurrentPosition == 0);
-
-			do
-			{
-				getXyState(&XyCurrentPosition, pos);
-			} while (XyCurrentPosition == 0);
+			motorAction();
 		}
 	}
 	else
 	{
 		return false;
 	}
-	//XY
 	return true;
+}
+
+void CXYPlatform::motorAction()
+{
+	Sleep(500);//定时器每隔300ms获取一次状态，因为电机启动后，等待500ms，确保可以正常获取电机状态
+	do {} while (mFlag0[0]!='0' || mFlag0[1]!='0' || mFlag0[2]!='0' || mFlag0[3]!='0' || //双重保险
+		mFlag0[4]!='0' || mFlag0[5]!='0' || mFlag0[6]!='0' || mFlag0[7]!='0' ||          //确保命令控制位已清空
+		mFlag16[6] != '0' || mFlag16[7] != '0');                                         //确保电机已经到位
 }

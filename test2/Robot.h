@@ -54,4 +54,6 @@
 #define SIDELENGTH_END    50*3.4641016 	 //not the centre-privot distance
 
 /////////////////////////////////////XY平台参数
-#define rectangleSize 200.0000   //XY平台格子边长
+#define RECTANGLESIZE_X 160    //
+#define RECTANGLESIZE_Y 220    //
+

@@ -31,10 +31,11 @@ private:
 	void StateShow(CString str);
 	void getReturn(BYTE* rxdata, long* len);
 	virtual BOOL OnInitDialog();
+	void readState(CString& strtemp);
 
 	afx_msg void OnClickedBtnOpen();
 	afx_msg void OnClickedBtnLoop();
-	void LoopTest(CString* str);
+	void LoopTest(CString& str);
 	afx_msg void OnClickedBtnXrz();
 	afx_msg void OnClickedBtnXlz();
 	afx_msg void OnClickedBtnYrz();
@@ -61,4 +62,5 @@ public:
 	void moveXyPlatform(int data);
 	BOOL serialPortState();
 	bool actionScheme(double* targetPos, double *deltaTarget);
+	void motorAction();
 };

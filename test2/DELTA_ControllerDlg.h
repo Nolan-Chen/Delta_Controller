@@ -38,7 +38,7 @@ private:
 	static UINT __cdecl _threadRobotActionTest(LPVOID pParam);
 	CExhibiton* pES;
 	CConveyor* pCT;
-	CXYPlatform* pXYPlatform;
+	
 	double m_Rtate;
 	double m_Pos_X;
 	double m_Pos_Y;
